@@ -9,6 +9,7 @@ import { readManifest, writeManifest, deleteManifest, createManifest, ALCopsMani
 import { checkDirectoryForLockedFiles } from './file-lock-handler';
 import { stageAndReplaceFiles, cleanupOldBackups } from './file-staging';
 import { checkALExtensionStatus, promptUserForLockedFiles, showLockedFilesError } from './al-extension-handler';
+import { installationMutex } from './installation-mutex.js';
 
 const PACKAGE_NAME = 'ALCops.Analyzers';
 
@@ -159,6 +160,16 @@ function filterVersionsByChannel(versions: string[], channel: 'stable' | 'beta' 
 }
 
 export async function downloadALCopsAnalyzers(version?: string, versionManager?: any): Promise<void> {
+    // Use mutex to ensure only one installation at a time - prevents race conditions
+    return installationMutex.withLock(async () => {
+        return await downloadALCopsAnalyzersInternal(version, versionManager);
+    });
+}
+
+/**
+ * Internal implementation (wrapped by mutex)
+ */
+async function downloadALCopsAnalyzersInternal(version?: string, versionManager?: any): Promise<void> {
     const packageName = PACKAGE_NAME;
     const downloadUrl = version
         ? `https://www.nuget.org/api/v2/package/${packageName}/${version}`
@@ -266,7 +277,7 @@ export async function downloadALCopsAnalyzers(version?: string, versionManager?:
         const stagingResult = stageAndReplaceFiles(sourceLibPath, targetPath);
 
         if (!stagingResult.success) {
-            // Check if it's a lock issue again
+            // Check if it's a lock issue
             const newLockCheck = checkDirectoryForLockedFiles(targetPath);
             if (newLockCheck.isLocked) {
                 console.error(`Installation failed due to locked files: ${newLockCheck.lockedFiles.join(', ')}`);

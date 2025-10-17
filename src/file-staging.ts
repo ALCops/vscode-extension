@@ -13,9 +13,7 @@ export interface StagingResult {
 
 /**
  * Stage files for replacement with rollback capability
- * 1. Backs up existing files with .bak extension
- * 2. Copies new files to target location
- * 3. If any operation fails, rolls back all changes
+ * Just backup, copy, and rollback on failure. Do this in a single pass to minimize the time window for race conditions
  */
 export function stageAndReplaceFiles(
     sourceDir: string,
@@ -26,37 +24,47 @@ export function stageAndReplaceFiles(
     const replacedFiles: string[] = [];
 
     try {
-        // Step 1: Create backup directory
+        // Step 1: Read files from source (only actual files, no directories)
+        const sourceFiles = fs.readdirSync(sourceDir).filter(file => {
+            const sourceFile = path.join(sourceDir, file);
+            return fs.statSync(sourceFile).isFile();
+        });
+
+        if (sourceFiles.length === 0) {
+            return {
+                success: true,
+                replacedCount: 0,
+                failedFiles: [],
+            };
+        }
+
+        // Step 2: Create backup directory
         if (!fs.existsSync(backupDir)) {
             fs.mkdirSync(backupDir, { recursive: true });
         }
 
-        // Step 2: Read files from source
-        const sourceFiles = fs.readdirSync(sourceDir);
-
-        // Step 3: Backup and replace files
+        // Step 3: Backup and replace files in a single loop
+        // This minimizes the time window where files are in an inconsistent state
         for (const file of sourceFiles) {
             const sourceFile = path.join(sourceDir, file);
             const targetFile = path.join(targetDir, file);
             const backupFile = path.join(backupDir, file);
 
             try {
-                // Only process files, skip directories
-                if (!fs.statSync(sourceFile).isFile()) {
-                    continue;
-                }
-
                 // Backup existing file if it exists
                 if (fs.existsSync(targetFile)) {
                     fs.copyFileSync(targetFile, backupFile);
                 }
 
-                // Copy new file to target
+                // Immediately copy new file to target
+                // Using renameSync would be more atomic, but source is in a different directory
                 fs.copyFileSync(sourceFile, targetFile);
                 replacedFiles.push(file);
             } catch (error) {
                 failedFiles.push(file);
                 console.error(`Failed to replace file ${file}:`, error);
+                // Don't continue - we want all-or-nothing
+                break;
             }
         }
 
