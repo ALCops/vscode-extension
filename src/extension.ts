@@ -6,6 +6,7 @@ import { VersionManager } from './version-manager.js';
 import { AutoUpdater } from './auto-updater.js';
 import { getPendingUpdate, clearPendingUpdate } from './manifest-manager.js';
 import { downloadALCopsAnalyzers } from './downloader.js';
+import { StatusBarManager } from './status-bar-manager.js';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -14,6 +15,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "alcops" is now active!');
+
+	// Initialize status bar manager
+	const statusBarManager = new StatusBarManager(context);
 
 	// Initialize version manager and auto updater
 	const versionManager = new VersionManager(context);

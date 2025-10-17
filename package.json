@@ -45,6 +45,10 @@
       {
         "command": "alcops.install",
         "title": "ALCops: Install"
+      },
+      {
+        "command": "alcops.selectCodeAnalyzers",
+        "title": "ALCops: Select Code Analyzers"
       }
     ],
     "configuration": {
