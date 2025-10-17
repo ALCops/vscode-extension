@@ -39,7 +39,7 @@ Configure these settings in your VS Code `settings.json`:
 - First-time setup may take a few moments while analyzers are downloaded
 - Some analyzer rules may require specific Business Central versions
 
-Please report any issues on the [GitHub repository](https://github.com/Arthurvdv/vscodeext).
+Please report any issues on the [GitHub repository](https://github.com/ALCops/vscode-extension).
 
 ## How It Works
 
