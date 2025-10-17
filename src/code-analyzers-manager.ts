@@ -172,11 +172,11 @@ export class CodeAnalyzersManager {
     }
 
     /**
-     * Count active Code Analyzers (excluding Common library)
+     * Count active Code Analyzers
      */
     countActiveCodeAnalyzers(activeAnalyzers: string[]): number {
-        return this.analyzersList.filter(analyzer =>
-            activeAnalyzers.includes(analyzer.setting)
-        ).length;
+        const commonLibrarySetting = this.getCommonLibrarySetting();
+        // Count all active analyzers except the Common library
+        return activeAnalyzers.filter(analyzer => analyzer !== commonLibrarySetting).length;
     }
 }

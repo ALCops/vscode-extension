@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Fixed
 - Add installation mutex to prevent race conditions during concurrent installation attempts
+- Fixed status bar count to include non-standard code analyzers (e.g., third-party analyzers with ${analyzerFolder} prefix)
 
 ## [1.1.0] - 2025-10-17
 
