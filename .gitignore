@@ -1,0 +1,33 @@
+# Generated files
+out/
+dist/
+*.vsix
+*.tgz
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode-test/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.js
+*.js.map
+*.d.ts
+!eslint.config.mjs
+!.vscode-test.mjs
+
+# Environment
+.env
+.env.local
+.env.*.local

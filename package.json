@@ -1,0 +1,123 @@
+{
+  "name": "alcops",
+  "displayName": "ALCops",
+  "description": "Code Analyzers for AL programming language of Microsoft Dynamics 365 Business Central",
+  "version": "1.0.0",
+  "publisher": "arthurvdv",
+  "author": {
+    "name": "ALCops",
+    "url": "https://alcops.dev"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ALCops/vscode-extension"
+  },
+  "homepage": "https://github.com/ALCops/vscode-extension#readme",
+  "bugs": {
+    "url": "https://github.com/ALCops/vscode-extension/issues"
+  },
+  "keywords": [
+    "AL",
+    "ALCops",
+    "analyzer",
+    "business-central",
+    "dynamics-365",
+    "al-language",
+    "code-quality"
+  ],
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "alcops.checkUpdates",
+        "title": "ALCops: Check for Updates"
+      },
+      {
+        "command": "alcops.install",
+        "title": "ALCops: Install"
+      }
+    ],
+    "configuration": {
+      "title": "ALCops",
+      "properties": {
+        "alcops.automaticUpdates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically check for updates when VS Code starts. Updates follow the selected Version Channel."
+        },
+        "alcops.updateNotification": {
+          "type": "string",
+          "enum": [
+            "auto-install",
+            "notify-only",
+            "manual"
+          ],
+          "enumDescriptions": [
+            "Automatically download and install updates",
+            "Show notification when updates are available (recommended)",
+            "Only update when manually triggered via command"
+          ],
+          "default": "notify-only",
+          "description": "How to handle available updates"
+        },
+        "alcops.versionChannel": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "beta",
+            "alpha"
+          ],
+          "enumDescriptions": [
+            "Stable - Latest recommended version for production",
+            "Beta - Pre-release versions for testing new features",
+            "Alpha - Experimental versions with latest features"
+          ],
+          "default": "stable",
+          "description": "Select which release versions to receive"
+        },
+        "alcops.checkUpdateInterval": {
+          "type": "number",
+          "default": 24,
+          "minimum": 1,
+          "maximum": 720,
+          "description": "Hours between automatic update checks"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/unzipper": "^0.10.11",
+    "@types/vscode": "^1.104.0",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^2.27.0",
+    "eslint": "^9.34.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "pe-struct": "^0.9.4",
+    "unzipper": "^0.10.14"
+  }
+}
