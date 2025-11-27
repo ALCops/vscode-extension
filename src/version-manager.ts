@@ -132,4 +132,37 @@ export class VersionManager {
     getFilesFromManifest(): string[] | null {
         return this.readManifestValue(m => m.files);
     }
+
+    /**
+     * Check if ALCops installation is missing or needs reinstallation
+     * This includes checking for AL extension changes or missing files
+     */
+    needsReinstallation(): { needed: boolean; reason?: string; suggestedVersion?: string } {
+        const alExtension = this.getALExtensionSafely();
+
+        if (!alExtension) {
+            return { needed: false, reason: 'AL extension not installed' };
+        }
+
+        // Check if AL extension has changed
+        if (this.hasALExtensionChanged(alExtension)) {
+            const previousVersion = this.getInstalledALCopsVersionFromManifest();
+            return {
+                needed: true,
+                reason: 'AL extension has been updated',
+                suggestedVersion: previousVersion || undefined
+            };
+        }
+
+        // Check if manifest exists
+        const installedVersion = this.getInstalledALCopsVersionFromManifest();
+        if (!installedVersion) {
+            return {
+                needed: true,
+                reason: 'No ALCops installation found'
+            };
+        }
+
+        return { needed: false };
+    }
 }
