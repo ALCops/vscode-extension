@@ -62,7 +62,7 @@ export class StatusBarManager {
     private updateStatusBar(): void {
         const activeCodeAnalyzersCount = this.getActiveCodeAnalyzersCount();
 
-        this.statusBarItem.text = `AL Cops: ${activeCodeAnalyzersCount}`;
+        this.statusBarItem.text = `ALCops: ${activeCodeAnalyzersCount}`;
         this.statusBarItem.command = 'alcops.selectCodeAnalyzers';
         this.statusBarItem.tooltip = `Click to select Code Analyzers (${activeCodeAnalyzersCount} active)`;
         this.statusBarItem.show();
