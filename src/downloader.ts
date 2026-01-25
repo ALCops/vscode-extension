@@ -70,6 +70,11 @@ export function verifyAnalyzerInstallation(targetPath: string): VerificationResu
 
 /**
  * Query the latest version from NuGet based on the specified release channel
+ * 
+ * Channel behavior:
+ * - stable: Only versions without pre-release suffix (e.g., 1.0.0)
+ * - beta: Stable + beta versions (e.g., 1.0.0, 1.0.0-beta.1)
+ * - alpha: All versions including alpha pre-releases
  */
 export async function queryLatestVersion(channel: 'stable' | 'beta' | 'alpha'): Promise<string | null> {
     try {
@@ -82,14 +87,31 @@ export async function queryLatestVersion(channel: 'stable' | 'beta' | 'alpha'): 
         }
 
         // Filter versions based on channel
-        const filtered = filterVersionsByChannel(versions, channel);
+        const filtered = versions.filter((version) => {
+            const lowerVersion = version.toLowerCase();
+
+            switch (channel) {
+                case 'stable':
+                    // Stable versions have no pre-release suffix
+                    return !lowerVersion.includes('-');
+                case 'beta':
+                    // Beta channel includes stable and beta versions (not alpha)
+                    return !lowerVersion.includes('-alpha');
+                case 'alpha':
+                    // Alpha channel includes all versions
+                    return true;
+                default:
+                    return false;
+            }
+        });
 
         if (filtered.length === 0) {
             return null;
         }
 
-        // Return the latest version from filtered list
-        return filtered[filtered.length - 1];
+        // Sort and return the latest version
+        const sorted = filtered.sort(compareSemVer);
+        return sorted[sorted.length - 1];
     } catch (error) {
         console.error('Error querying NuGet for latest version:', error);
         return null;
@@ -134,29 +156,52 @@ function queryNuGetIndex(indexUrl: string): Promise<string[]> {
 }
 
 /**
- * Filter versions based on the release channel
- * Stable: no suffix (e.g., 1.0.0)
- * Beta: has -beta suffix (e.g., 1.0.0-beta or 1.0.0-beta1)
- * Alpha: has -alpha suffix (e.g., 1.0.0-alpha or 1.0.0-alpha1)
+ * Parse a semver version string into components for comparison
  */
-function filterVersionsByChannel(versions: string[], channel: 'stable' | 'beta' | 'alpha'): string[] {
-    return versions.filter((version) => {
-        const lowerVersion = version.toLowerCase();
+function parseSemVer(version: string): { major: number; minor: number; patch: number; prerelease: string | null; prereleaseNum: number } {
+    const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z]+)(?:\.?(\d+))?)?$/);
+    if (!match) {
+        return { major: 0, minor: 0, patch: 0, prerelease: null, prereleaseNum: 0 };
+    }
 
-        switch (channel) {
-            case 'stable':
-                // Stable versions have no pre-release suffix
-                return !lowerVersion.includes('-');
-            case 'beta':
-                // Beta versions contain -beta
-                return lowerVersion.includes('-beta');
-            case 'alpha':
-                // Alpha versions contain -alpha
-                return lowerVersion.includes('-alpha');
-            default:
-                return false;
-        }
-    });
+    return {
+        major: parseInt(match[1], 10),
+        minor: parseInt(match[2], 10),
+        patch: parseInt(match[3], 10),
+        prerelease: match[4]?.toLowerCase() || null,
+        prereleaseNum: match[5] ? parseInt(match[5], 10) : 0
+    };
+}
+
+/**
+ * Compare two semver versions
+ * Returns negative if a < b, positive if a > b, 0 if equal
+ * Pre-release versions are considered lower than their release counterpart
+ * (e.g., 1.0.0-beta.10 < 1.0.0)
+ */
+function compareSemVer(a: string, b: string): number {
+    const verA = parseSemVer(a);
+    const verB = parseSemVer(b);
+
+    // Compare major.minor.patch
+    if (verA.major !== verB.major) return verA.major - verB.major;
+    if (verA.minor !== verB.minor) return verA.minor - verB.minor;
+    if (verA.patch !== verB.patch) return verA.patch - verB.patch;
+
+    // If one has prerelease and other doesn't, release version wins
+    if (verA.prerelease === null && verB.prerelease !== null) return 1;
+    if (verA.prerelease !== null && verB.prerelease === null) return -1;
+    if (verA.prerelease === null && verB.prerelease === null) return 0;
+
+    // Both have prerelease - compare prerelease type (alpha < beta)
+    const prereleaseOrder: { [key: string]: number } = { 'alpha': 1, 'beta': 2 };
+    const orderA = prereleaseOrder[verA.prerelease!] || 0;
+    const orderB = prereleaseOrder[verB.prerelease!] || 0;
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    // Same prerelease type - compare prerelease number
+    return verA.prereleaseNum - verB.prereleaseNum;
 }
 
 export async function downloadALCopsAnalyzers(version?: string, versionManager?: any): Promise<void> {
