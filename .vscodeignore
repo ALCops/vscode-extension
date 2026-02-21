@@ -1,11 +1,28 @@
+# Source & compiled TypeScript
+src/**
+out/**
+
+# Node modules (bundled into dist/)
+node_modules/**
+
+# Dev tooling & config
 .vscode/**
 .vscode-test/**
-src/**
+.github/**
 .gitignore
 .yarnrc
+tsconfig.json
+eslint.config.mjs
+esbuild.mjs
+GitVersion.yml
 vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
-**/*.map
-**/*.ts
 **/.vscode-test.*
+
+# Source maps (not useful in production VSIX)
+dist/**/*.map
+
+# Test files
+**/*.test.js
+
+# Misc
+*.vsix

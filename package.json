@@ -2,7 +2,7 @@
   "name": "alcops",
   "displayName": "ALCops",
   "description": "Code Analyzers for AL programming language of Microsoft Dynamics 365 Business Central",
-  "version": "1.2.0",
+  "version": "1.0.0",
   "publisher": "arthurvdv",
   "author": {
     "name": "ALCops",
@@ -38,7 +38,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -103,9 +103,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "bundle": "node esbuild.mjs",
+    "watch:bundle": "node esbuild.mjs --watch",
     "compile": "tsc -p ./",
+    "typecheck": "tsc --noEmit",
     "watch": "tsc -watch -p ./",
+    "clean": "node -e \"['out','dist'].forEach(d => require('fs').rmSync(d, {recursive:true,force:true}))\"",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
@@ -121,6 +125,7 @@
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^2.27.0",
+    "esbuild": "^0.27.3",
     "eslint": "^9.34.0",
     "typescript": "^5.9.2"
   },

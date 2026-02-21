@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-02-21
+
+### Performance
+- Bundled extension with esbuild, reducing the VSIX to a single `dist/extension.js` (minified)
+- Added `.vscodeignore` rules to exclude `node_modules`, `out`, dev tooling, and source maps from the published package
+
+
 ## [1.2.0] - 2026-02-21
 
 ### Changed
