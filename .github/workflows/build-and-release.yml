@@ -61,7 +61,7 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ contains(steps.gitversion.outputs.SemVer, '-') }}
           files: |
-            ./artifacts/*.nupkg
+            ./artifacts/*.vsix
 
       - name: Publish to VS Code Marketplace
         if: startsWith(github.ref, 'refs/tags/v')
