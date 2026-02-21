@@ -8,8 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Fixed
 - Resolved two ESLint warnings
+- Downgraded `@types/vscode` to `1.104.0` for engine compatibility
 
 ### Changed
+- Replaced `unzipper` with `fflate` for zip extraction
 - Updated GitHub Actions dependencies (including `actions/checkout` v6)
 - Updated npm dependencies, including `@vscode/vsce`, `@types/node`, and `eslint`
 
