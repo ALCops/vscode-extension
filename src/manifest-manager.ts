@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatError } from './utils.js';
 
 /**
  * Represents the manifest metadata for ALCops analyzer installation
@@ -27,7 +28,7 @@ export function writeManifest(
         const manifestPath = path.join(targetPath, MANIFEST_FILE_NAME);
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     } catch (error) {
-        throw new Error(`Failed to write manifest file: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(`Failed to write manifest file: ${formatError(error)}`);
     }
 }
 
@@ -45,23 +46,8 @@ export function readManifest(targetPath: string): ALCopsManifest | null {
         const data = fs.readFileSync(manifestPath, 'utf-8');
         return JSON.parse(data) as ALCopsManifest;
     } catch (error) {
-        console.warn(`Failed to read manifest file: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`Failed to read manifest file: ${formatError(error)}`);
         return null;
-    }
-}
-
-/**
- * Delete the manifest file from the Analyzers folder
- */
-export function deleteManifest(targetPath: string): void {
-    try {
-        const manifestPath = path.join(targetPath, MANIFEST_FILE_NAME);
-
-        if (fs.existsSync(manifestPath)) {
-            fs.unlinkSync(manifestPath);
-        }
-    } catch (error) {
-        console.warn(`Failed to delete manifest file: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
@@ -114,7 +100,7 @@ export function markAsPendingUpdate(
         writeManifest(targetPath, manifest);
         console.log(`Marked ALCops v${pendingVersion} as pending for next startup`);
     } catch (error) {
-        console.warn(`Failed to mark pending update: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`Failed to mark pending update: ${formatError(error)}`);
     }
 }
 
@@ -129,7 +115,7 @@ export function getPendingUpdate(targetPath: string): string | null {
             return manifest.pendingVersion;
         }
     } catch (error) {
-        console.warn(`Failed to get pending update: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`Failed to get pending update: ${formatError(error)}`);
     }
     return null;
 }
@@ -146,6 +132,6 @@ export function clearPendingUpdate(targetPath: string): void {
             writeManifest(targetPath, manifest);
         }
     } catch (error) {
-        console.warn(`Failed to clear pending update: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`Failed to clear pending update: ${formatError(error)}`);
     }
 }

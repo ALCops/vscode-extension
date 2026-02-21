@@ -1,9 +1,15 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { VersionManager } from './version-manager.js';
-import { queryLatestVersion, downloadALCopsAnalyzers, verifyAnalyzerInstallation } from './downloader.js';
+import { queryLatestVersion, downloadALCopsAnalyzers } from './downloader.js';
+import { getPendingUpdate } from './manifest-manager.js';
+import { getAnalyzersPath } from './al-extension-handler.js';
+import { formatError } from './utils.js';
 
 export class AutoUpdater {
+    private readonly _onDidInstallAnalyzers = new vscode.EventEmitter<string>();
+    /** Fires with the installed version string after every successful analyzer installation. */
+    public readonly onDidInstallAnalyzers: vscode.Event<string> = this._onDidInstallAnalyzers.event;
+
     constructor(private versionManager: VersionManager) { }
 
     /**
@@ -11,131 +17,64 @@ export class AutoUpdater {
      */
     async checkAndNotifyUpdates(): Promise<void> {
         try {
-            const automaticUpdates = vscode.workspace.getConfiguration('alcops').get<boolean>('automaticUpdates', true);
-
-            if (!automaticUpdates) {
-                return; // Updates are disabled
+            if (!vscode.workspace.getConfiguration('alcops').get<boolean>('automaticUpdates', true)) {
+                return;
             }
 
-            // Attempt recovery if installation is invalid or missing
-            if (await this.tryRecoverInstallation()) {
-                return; // Recovery was attempted, skip normal update check
-            }
-
-            // Check if enough time has passed since last check
             if (!this.versionManager.shouldCheckForUpdates()) {
-                return; // Not enough time has passed since last check
+                return;
             }
 
-            // Perform normal update check
             await this.performUpdateCheck();
-
         } catch (error) {
             console.error('Error checking for ALCops updates:', error);
-            // Silently fail - don't interrupt the user's session
         }
     }
 
     /**
-     * Automatically install the update silently
-     */
-    private async autoInstallUpdate(version: string): Promise<void> {
-        try {
-            vscode.window.showInformationMessage(`ALCops: Installing update to version ${version}...`);
-
-            await downloadALCopsAnalyzers(version, this.versionManager);
-
-            vscode.window.showInformationMessage(`ALCops successfully updated to version ${version}. Please reload VS Code to apply changes.`);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to auto-install ALCops update: ${errorMessage}`);
-        }
-    }
-
-    /**
-     * Notify the user about an available update with action buttons
-     */
-    private async notifyUserAboutUpdate(version: string): Promise<void> {
-        const currentVersion = this.versionManager.getInstalledALCopsVersionFromManifest() || 'unknown';
-        const message = currentVersion === 'unknown'
-            ? `ALCops: Ready to install version ${version}`
-            : `ALCops update available: ${currentVersion} → ${version}`;
-
-        const result = await vscode.window.showInformationMessage(
-            message,
-            'Install Now',
-            'Remind Later',
-            'Never'
-        );
-
-        switch (result) {
-            case 'Install Now':
-                await this.installUpdate(version);
-                break;
-            case 'Never':
-                // Do nothing - user declined the update
-                break;
-            case 'Remind Later':
-                // Reset last check time to ask again soon
-                await this.versionManager.setLastCheckTime();
-                break;
-        }
-    }
-
-    /**
-     * Install a specific version (public method for manual installation)
+     * Install a specific version. Owns all user-facing messaging for the install.
+     * Re-throws on failure so callers can decide whether to propagate.
      */
     async installUpdate(version: string): Promise<void> {
+        vscode.window.showInformationMessage(`ALCops: Installing v${version}...`);
         try {
-            vscode.window.showInformationMessage(`ALCops: Installing update to version ${version}...`);
-
-            await downloadALCopsAnalyzers(version, this.versionManager);
-
-            vscode.window.showInformationMessage(`ALCops successfully updated to version ${version}. Please reload VS Code to apply changes.`);
+            await downloadALCopsAnalyzers(version);
+            this._onDidInstallAnalyzers.fire(version);
+            vscode.window.showInformationMessage(`ALCops v${version} installed. Please reload VS Code to apply changes.`);
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to install ALCops update: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Failed to install ALCops v${version}: ${formatError(error)}`);
             throw error;
         }
     }
 
     /**
-     * Manually check for updates (can be called by command)
+     * Manually check for updates (called by command)
      */
     async checkUpdatesManually(): Promise<void> {
         try {
             const latestVersion = await queryLatestVersion(this.getVersionChannel());
-
             if (!latestVersion) {
                 vscode.window.showErrorMessage('Could not determine latest ALCops version');
                 return;
             }
 
-            const currentVersion = this.versionManager.getInstalledALCopsVersionFromManifest() || 'unknown';
-
+            const currentVersion = this.versionManager.getInstalledALCopsVersionFromManifest() ?? 'unknown';
             if (currentVersion === latestVersion) {
                 vscode.window.showInformationMessage(`ALCops is up to date (v${currentVersion})`);
                 return;
             }
 
-            const message = currentVersion === 'unknown'
-                ? `ALCops: Ready to install version ${latestVersion}`
-                : `ALCops update available: ${currentVersion} → ${latestVersion}`;
-
-            vscode.window.showInformationMessage(
-                message,
-                'Install Now',
-                'Cancel'
-            ).then(async (result) => {
-                if (result === 'Install Now') {
-                    await this.installUpdate(latestVersion);
-                }
-            });
+            const result = await vscode.window.showInformationMessage(
+                this.buildUpdateMessage(currentVersion, latestVersion),
+                'Install Now', 'Cancel'
+            );
+            if (result === 'Install Now') {
+                await this.installUpdate(latestVersion);
+            }
 
             await this.versionManager.setLastCheckTime();
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to check for updates: ${errorMessage}`);
+            vscode.window.showErrorMessage(`Failed to check for updates: ${formatError(error)}`);
         }
     }
 
@@ -148,87 +87,59 @@ export class AutoUpdater {
             .get<string>('versionChannel', 'stable') as 'stable' | 'beta' | 'alpha';
     }
 
+    private buildUpdateMessage(currentVersion: string, latestVersion: string): string {
+        return currentVersion === 'unknown'
+            ? `ALCops: Ready to install version ${latestVersion}`
+            : `ALCops update available: ${currentVersion} → ${latestVersion}`;
+    }
+
     /**
-     * Try to recover installation if it's invalid or missing
-     * @private
-     * @returns true if recovery was attempted (success or failure), false if no recovery needed
+     * Handle reinstallation if needed (e.g., AL extension was updated, files are missing)
+     * @returns true if installation was attempted and succeeded, false otherwise
      */
-    private async tryRecoverInstallation(): Promise<boolean> {
-        const alExtension = vscode.extensions.getExtension('ms-dynamics-smb.al');
-        if (!alExtension) {
-            return false;
-        }
-
-        const targetPath = path.join(alExtension.extensionPath, 'bin', 'Analyzers');
-        const verification = verifyAnalyzerInstallation(targetPath);
-
-        if (verification.isValid) {
-            return false; // No recovery needed
-        }
-
-        // Check if reinstallation is needed
+    private async ensureValidInstallation(): Promise<boolean> {
         const reinstallCheck = this.versionManager.needsReinstallation();
         if (!reinstallCheck.needed) {
             return false;
         }
 
-        // Determine version to install
-        const versionToRecover = reinstallCheck.suggestedVersion ||
-            this.versionManager.getInstalledALCopsVersionFromManifest();
+        const version = reinstallCheck.suggestedVersion
+            ?? this.versionManager.getInstalledALCopsVersionFromManifest()
+            ?? null;
 
-        if (versionToRecover) {
-            return await this.recoverSpecificVersion(versionToRecover, reinstallCheck.reason);
-        } else {
-            return await this.recoverLatestVersion(reinstallCheck.reason);
-        }
+        return this.installVersion(version, reinstallCheck.reason ?? 'installation invalid');
     }
 
     /**
-     * Recover a specific version
-     * @private
+     * Install a specific version (or resolve the latest if null) as part of an automated flow.
+     * Owns console logging and user-facing messages for background installs.
+     * @returns true on success, false on failure
      */
-    private async recoverSpecificVersion(version: string, reason?: string): Promise<boolean> {
-        console.log(`Installation invalid (${reason}). Attempting recovery of v${version}...`);
-        try {
-            await downloadALCopsAnalyzers(version, this.versionManager);
-            console.log('Installation recovered successfully.');
-            return true;
-        } catch (error) {
-            console.error('Failed to recover installation:', error);
-            return true; // Still attempted recovery
-        }
-    }
-
-    /**
-     * Recover by installing the latest version
-     * @private
-     */
-    private async recoverLatestVersion(reason?: string): Promise<boolean> {
-        console.log(`Installation invalid (${reason}). No previous version found, attempting to install latest...`);
-
-        const latestVersion = await queryLatestVersion(this.getVersionChannel());
-        if (!latestVersion) {
-            console.error('Could not determine latest version for recovery');
-            return true; // Still attempted recovery
+    private async installVersion(version: string | null, reason: string): Promise<boolean> {
+        const targetVersion = version ?? await queryLatestVersion(this.getVersionChannel());
+        if (!targetVersion) {
+            console.error(`Could not determine version to install (${reason})`);
+            return false;
         }
 
+        console.log(`Installing ALCops v${targetVersion} (${reason})...`);
         try {
-            await downloadALCopsAnalyzers(latestVersion, this.versionManager);
-            console.log(`Latest version v${latestVersion} installed successfully.`);
+            await downloadALCopsAnalyzers(targetVersion);
+            this._onDidInstallAnalyzers.fire(targetVersion);
+            vscode.window.showInformationMessage(`ALCops v${targetVersion} installed successfully.`);
             return true;
         } catch (error) {
-            console.error('Failed to install latest version:', error);
-            return true; // Still attempted recovery
+            console.error(`Failed to install ALCops v${targetVersion}:`, error);
+            vscode.window.showErrorMessage(`Failed to install ALCops: ${formatError(error)}`);
+            return false;
         }
     }
 
     /**
      * Perform the update check and handle notifications
-     * @private
      */
     private async performUpdateCheck(): Promise<void> {
         const latestVersion = await queryLatestVersion(this.getVersionChannel());
-
         if (!latestVersion) {
             console.log('Could not determine latest ALCops version');
             return;
@@ -237,149 +148,76 @@ export class AutoUpdater {
         await this.versionManager.setLastCheckTime();
 
         if (!this.versionManager.isNewVersionAvailable(latestVersion)) {
-            return; // Already on latest version
+            return;
         }
 
-        // Handle update based on notification preference
         const updateNotification = vscode.workspace.getConfiguration('alcops')
             .get<string>('updateNotification', 'notify-only');
 
         switch (updateNotification) {
             case 'auto-install':
-                await this.autoInstallUpdate(latestVersion);
+                await this.installUpdate(latestVersion);
                 break;
             case 'notify-only':
                 await this.notifyUserAboutUpdate(latestVersion);
                 break;
-            case 'manual':
-                // Do nothing - user will manually trigger updates
+        }
+    }
+
+    /**
+     * Notify the user about an available update with action buttons
+     */
+    private async notifyUserAboutUpdate(version: string): Promise<void> {
+        const currentVersion = this.versionManager.getInstalledALCopsVersionFromManifest() ?? 'unknown';
+        const result = await vscode.window.showInformationMessage(
+            this.buildUpdateMessage(currentVersion, version),
+            'Install Now', 'Remind Later', 'Never'
+        );
+        switch (result) {
+            case 'Install Now':
+                await this.installUpdate(version);
+                break;
+            case 'Remind Later':
+                await this.versionManager.setLastCheckTime();
                 break;
         }
     }
 
     /**
      * Handle pending update installation from previous deferred installations
-     * @private
-     * @returns true if pending update was found and handled, false otherwise
+     * @returns true if pending update was found and installed successfully, false otherwise
      */
     private async handlePendingUpdate(): Promise<boolean> {
-        const alExtension = vscode.extensions.getExtension('ms-dynamics-smb.al');
-        if (!alExtension) {
+        const analyzerPath = getAnalyzersPath();
+        if (!analyzerPath) {
             return false;
         }
 
-        const analyzerPath = path.join(alExtension.extensionPath, 'bin', 'Analyzers');
-        const { getPendingUpdate } = await import('./manifest-manager.js');
         const pendingVersion = getPendingUpdate(analyzerPath);
-
-        console.log(`Pending version check: ${pendingVersion ? `Found v${pendingVersion}` : 'No pending installation'}`);
-
         if (!pendingVersion) {
             return false;
         }
 
-        console.log(`Found pending ALCops installation for version ${pendingVersion}. Attempting installation...`);
-
-        try {
-            await downloadALCopsAnalyzers(pendingVersion, this.versionManager);
-            console.log(`Pending installation of ALCops v${pendingVersion} completed successfully.`);
-            vscode.window.showInformationMessage(`ALCops v${pendingVersion} has been successfully installed!`);
-            return true;
-        } catch (error) {
-            console.error(`Failed to install pending ALCops update: ${error}`);
-            console.log(`Pending flag will be retained for next startup retry`);
-            return true; // Still handled, even if failed
-        }
+        console.log(`Found pending ALCops installation for v${pendingVersion}. Attempting installation...`);
+        return this.installVersion(pendingVersion, 'pending deferred installation');
     }
 
     /**
-     * Handle reinstallation if needed (e.g., AL extension was updated)
-     * @private
-     * @returns true if reinstallation was needed and handled, false otherwise
-     */
-    private async handleReinstallation(): Promise<boolean> {
-        const reinstallCheck = this.versionManager.needsReinstallation();
-
-        if (!reinstallCheck.needed) {
-            return false;
-        }
-
-        console.log(`ALCops reinstallation needed: ${reinstallCheck.reason}`);
-
-        const versionToInstall = reinstallCheck.suggestedVersion;
-
-        if (versionToInstall) {
-            return await this.reinstallSpecificVersion(versionToInstall);
-        } else {
-            return await this.reinstallLatestVersion();
-        }
-    }
-
-    /**
-     * Reinstall a specific version
-     * @private
-     */
-    private async reinstallSpecificVersion(version: string): Promise<boolean> {
-        try {
-            console.log(`Reinstalling ALCops v${version} for updated AL extension...`);
-            await downloadALCopsAnalyzers(version, this.versionManager);
-            console.log(`ALCops v${version} reinstalled successfully.`);
-            vscode.window.showInformationMessage(`ALCops v${version} has been reinstalled for the updated AL extension.`);
-            return true;
-        } catch (error) {
-            console.error(`Failed to reinstall ALCops: ${error}`);
-            vscode.window.showErrorMessage(`Failed to reinstall ALCops: ${error instanceof Error ? error.message : String(error)}`);
-            return true; // Still handled, even if failed
-        }
-    }
-
-    /**
-     * Reinstall by installing the latest version
-     * @private
-     */
-    private async reinstallLatestVersion(): Promise<boolean> {
-        try {
-            console.log('No previous ALCops version found. Installing latest...');
-            const latestVersion = await queryLatestVersion(this.getVersionChannel());
-
-            if (!latestVersion) {
-                console.error('Could not determine latest ALCops version');
-                return true; // Still handled
-            }
-
-            await downloadALCopsAnalyzers(latestVersion, this.versionManager);
-            console.log(`ALCops v${latestVersion} installed successfully.`);
-            vscode.window.showInformationMessage(`ALCops v${latestVersion} has been installed.`);
-            return true;
-        } catch (error) {
-            console.error(`Failed to install latest ALCops: ${error}`);
-            vscode.window.showErrorMessage(`Failed to install ALCops: ${error instanceof Error ? error.message : String(error)}`);
-            return true; // Still handled, even if failed
-        }
-    }
-
-    /**
-     * Perform all startup checks including pending updates, reinstallation, and auto-updates
-     * This is called once during extension activation
+     * Perform all startup checks: pending installs, reinstallation, and auto-updates
      */
     async performStartupChecks(): Promise<void> {
         try {
-            // Check for pending updates
             if (await this.handlePendingUpdate()) {
-                return; // Pending update handled, skip other checks
+                return;
             }
 
-            // Check for reinstallation needs
-            if (await this.handleReinstallation()) {
-                return; // Reinstallation handled, skip normal update check
+            if (await this.ensureValidInstallation()) {
+                return;
             }
 
-            // Perform normal update check
             await this.checkAndNotifyUpdates();
-
         } catch (error) {
             console.error('Error during startup checks:', error);
-            // Continue silently - don't interrupt extension activation
         }
     }
 
@@ -388,17 +226,15 @@ export class AutoUpdater {
      * Called by the install command
      */
     async installLatestVersion(): Promise<void> {
-        try {
-            const latestVersion = await queryLatestVersion(this.getVersionChannel());
-
-            if (latestVersion) {
-                await this.installUpdate(latestVersion);
-            } else {
-                vscode.window.showErrorMessage('Could not determine latest ALCops version');
-            }
-        } catch (error) {
-            console.error('Install latest version failed:', error);
-            throw error;
+        const latestVersion = await queryLatestVersion(this.getVersionChannel());
+        if (!latestVersion) {
+            vscode.window.showErrorMessage('Could not determine latest ALCops version');
+            return;
         }
+        await this.installUpdate(latestVersion);
+    }
+
+    dispose(): void {
+        this._onDidInstallAnalyzers.dispose();
     }
 }

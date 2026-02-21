@@ -5,7 +5,6 @@ export interface CodeAnalyzerInfo {
     setting: string;
     description: string;
     fileName: string;
-    isCommon: boolean;
 }
 
 /**
@@ -65,7 +64,6 @@ export class CodeAnalyzersManager {
             setting: `\${analyzerFolder}${fileName}`,
             fileName: fileName,
             description: `${cleanName} analyzer from ALCops`,
-            isCommon: false
         };
     }
 
@@ -79,30 +77,35 @@ export class CodeAnalyzersManager {
                 setting: '${CodeCop}',
                 description: 'AL coding guidelines and best practices',
                 fileName: 'ApplicationCop.dll',
-                isCommon: false
             },
             {
                 label: 'UICop',
                 setting: '${UICop}',
                 description: 'Web client customization rules',
                 fileName: 'UICop.dll',
-                isCommon: false
             },
             {
                 label: 'PerTenantExtensionCop',
                 setting: '${PerTenantExtensionCop}',
                 description: 'Per-tenant extension installation rules',
                 fileName: 'PerTenantExtensionCop.dll',
-                isCommon: false
             },
             {
                 label: 'AppSourceCop',
                 setting: '${AppSourceCop}',
-                description: 'AppSource marketplace publishing requirementss',
+                description: 'AppSource marketplace publishing requirements',
                 fileName: 'AppSourceCop.dll',
-                isCommon: false
             }
         ];
+    }
+
+    /**
+     * Reload Code Analyzers from the manifest file.
+     * Call this after new analyzers have been downloaded.
+     */
+    refresh(): void {
+        this.analyzersList = [];
+        this.loadCodeAnalyzers();
     }
 
     /**

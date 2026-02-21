@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatError } from './utils.js';
 
 /**
  * Result of staging and replacing files
@@ -98,7 +99,7 @@ export function stageAndReplaceFiles(
             success: false,
             replacedCount: 0,
             failedFiles: [],
-            reason: `Staging failed: ${error instanceof Error ? error.message : String(error)}`,
+            reason: `Staging failed: ${formatError(error)}`,
         };
     }
 }

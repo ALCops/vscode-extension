@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { readManifest } from './manifest-manager';
+import { readManifest } from './manifest-manager.js';
+import { getALExtension, getAnalyzersPath } from './al-extension-handler.js';
 
 const LAST_UPDATE_CHECK_KEY = 'alcops.lastUpdateCheck';
 
@@ -56,30 +56,13 @@ export class VersionManager {
     }
 
     /**
-     * Get the AL extension safely, returning null if not installed
-     * @private
-     */
-    private getALExtensionSafely(): vscode.Extension<any> | null {
-        return vscode.extensions.getExtension('ms-dynamics-smb.al') || null;
-    }
-
-    /**
-     * Get the path to the Analyzers folder in the AL extension
-     * @private
-     */
-    private getAnalyzersPath(): string | null {
-        const alExtension = this.getALExtensionSafely();
-        return alExtension ? path.join(alExtension.extensionPath, 'bin', 'Analyzers') : null;
-    }
-
-    /**
      * Generic helper to read and extract a value from the manifest
      * Handles AL extension lookup, manifest reading, and error handling
      * @private
      */
     private readManifestValue<T>(extractor: (manifest: any) => T | undefined): T | null {
         try {
-            const targetPath = this.getAnalyzersPath();
+            const targetPath = getAnalyzersPath();
             if (!targetPath) {
                 return null;
             }
@@ -113,32 +96,11 @@ export class VersionManager {
     }
 
     /**
-     * Get the target framework from the manifest
-     */
-    getTargetFrameworkFromManifest(): string | null {
-        return this.readManifestValue(m => m.targetFramework);
-    }
-
-    /**
-     * Get the download timestamp from the manifest
-     */
-    getDownloadTimestampFromManifest(): string | null {
-        return this.readManifestValue(m => m.downloadedAt);
-    }
-
-    /**
-     * Get all files from the manifest
-     */
-    getFilesFromManifest(): string[] | null {
-        return this.readManifestValue(m => m.files);
-    }
-
-    /**
      * Check if ALCops installation is missing or needs reinstallation
      * This includes checking for AL extension changes or missing files
      */
     needsReinstallation(): { needed: boolean; reason?: string; suggestedVersion?: string } {
-        const alExtension = this.getALExtensionSafely();
+        const alExtension = getALExtension();
 
         if (!alExtension) {
             return { needed: false, reason: 'AL extension not installed' };

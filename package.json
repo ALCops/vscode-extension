@@ -2,7 +2,7 @@
   "name": "alcops",
   "displayName": "ALCops",
   "description": "Code Analyzers for AL programming language of Microsoft Dynamics 365 Business Central",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "publisher": "arthurvdv",
   "author": {
     "name": "ALCops",
@@ -113,6 +113,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/semver": "^7.7.1",
     "@types/unzipper": "^0.10.11",
     "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
@@ -125,6 +126,7 @@
   },
   "dependencies": {
     "pe-struct": "^0.9.4",
+    "semver": "^7.7.4",
     "unzipper": "^0.10.14"
   }
 }
