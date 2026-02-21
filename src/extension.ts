@@ -13,12 +13,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "ALCops" is now active!');
 
-	// Initialize status bar manager
-	const statusBarManager = new StatusBarManager(context);
-
-	// Initialize version manager and auto updater
+	// Initialize version manager and auto updater first; StatusBarManager subscribes to its event
 	const versionManager = new VersionManager(context);
 	const autoUpdater = new AutoUpdater(versionManager);
+
+	// Initialize status bar manager and wire up the installation event
+	const statusBarManager = new StatusBarManager(context, autoUpdater.onDidInstallAnalyzers);
 
 	// Perform all startup checks (pending updates, reinstallation, auto-updates)
 	await autoUpdater.performStartupChecks();
@@ -42,6 +42,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(
+		statusBarManager,
+		autoUpdater,
 		checkUpdatesDisposable,
 		installDisposable
 	);

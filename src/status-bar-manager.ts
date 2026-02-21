@@ -7,7 +7,7 @@ export class StatusBarManager {
     private disposables: vscode.Disposable[] = [];
     private codeAnalyzersManager: CodeAnalyzersManager | null = null;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext, onDidInstallAnalyzers: vscode.Event<string>) {
         // Create status bar item on the left side, before the language mode
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Left,
@@ -49,7 +49,13 @@ export class StatusBarManager {
             }
         );
 
-        this.disposables.push(selectDisposable, editorChangeDisposable, configChangeDisposable);
+        // Refresh the analyzer list whenever a new installation completes
+        const installDisposable = onDidInstallAnalyzers(() => {
+            this.codeAnalyzersManager?.refresh();
+            this.updateStatusBar();
+        });
+
+        this.disposables.push(selectDisposable, editorChangeDisposable, configChangeDisposable, installDisposable);
         context.subscriptions.push(...this.disposables);
 
         // Initial status bar update
@@ -95,41 +101,21 @@ export class StatusBarManager {
         return vscode.ConfigurationTarget.Global;
     }
 
+    private getActiveAnalyzers(uri: vscode.Uri | undefined): string[] {
+        const raw = vscode.workspace.getConfiguration('al', uri).get<string | string[]>('codeAnalyzers', '');
+        return Array.isArray(raw) ? raw : (raw as string).split(',').map(a => a.trim()).filter(a => a);
+    }
+
     /**
      * Count the number of active Code Analyzers
      */
     private getActiveCodeAnalyzersCount(): number {
-        if (!this.codeAnalyzersManager) {
-            // Should not happen, but default to 0 as fallback
-            console.warn('CodeAnalyzersManager not initialized');
-            return 0;
-        }
-
-        const uri = this.getCurrentFileUri();
-        const codeAnalyzers = vscode.workspace.getConfiguration('al', uri).get<string | string[]>('codeAnalyzers', '');
-
-        // Handle both string and array formats
-        const activeAnalyzers = Array.isArray(codeAnalyzers)
-            ? codeAnalyzers
-            : (codeAnalyzers as string).split(',').map(a => a.trim()).filter(a => a);
-
-        // Use CodeAnalyzersManager to count active analyzers (excluding Common library)
-        return this.codeAnalyzersManager.countActiveCodeAnalyzers(activeAnalyzers);
+        if (!this.codeAnalyzersManager) { return 0; }
+        return this.codeAnalyzersManager.countActiveCodeAnalyzers(this.getActiveAnalyzers(this.getCurrentFileUri()));
     }
 
-    /**
-     * Check if a specific Code Analyzer is currently enabled
-     */
     private isCodeAnalyzerEnabled(analyzer: { setting: string }): boolean {
-        const uri = this.getCurrentFileUri();
-        const codeAnalyzers = vscode.workspace.getConfiguration('al', uri).get<string | string[]>('codeAnalyzers', '');
-
-        // Handle both string and array formats
-        const activeAnalyzers = Array.isArray(codeAnalyzers)
-            ? codeAnalyzers
-            : (codeAnalyzers as string).split(',').map(a => a.trim()).filter(a => a);
-
-        return activeAnalyzers.includes(analyzer.setting);
+        return this.getActiveAnalyzers(this.getCurrentFileUri()).includes(analyzer.setting);
     }
 
     /**
@@ -141,17 +127,15 @@ export class StatusBarManager {
             return;
         }
 
+        // Ensure the list reflects the latest manifest state before showing the picker
+        this.codeAnalyzersManager.refresh();
+
         const availableCops = this.codeAnalyzersManager.getAvailableCodeAnalyzers();
 
         const uri = this.getCurrentFileUri();
         const alConfig = vscode.workspace.getConfiguration('al', uri);
-        const currentAnalyzersRaw = alConfig.get<string | string[]>('codeAnalyzers', '');
         const configTarget = this.getCurrentConfigTarget();
-
-        // Handle both string and array formats
-        const currentAnalyzers = Array.isArray(currentAnalyzersRaw)
-            ? currentAnalyzersRaw
-            : (currentAnalyzersRaw as string).split(',').map(a => a.trim()).filter(a => a);
+        const currentAnalyzers = this.getActiveAnalyzers(uri);
 
         // Create quick-pick items with current state
         const quickPickItems = availableCops.map(cop => ({

@@ -1,40 +1,41 @@
 import * as vscode from 'vscode';
-import { getLockedFiles } from './file-lock-handler.js';
+import * as path from 'path';
+import { checkDirectoryForLockedFiles } from './file-lock-handler.js';
+
+const AL_EXTENSION_ID = 'ms-dynamics-smb.al';
 
 /**
- * Result of checking AL extension process status
+ * Get the AL extension, or null if not installed
  */
-export interface ALExtensionStatus {
+export function getALExtension(): vscode.Extension<any> | null {
+    return vscode.extensions.getExtension(AL_EXTENSION_ID) || null;
+}
+
+/**
+ * Get the path to the Analyzers folder inside the AL extension.
+ * Returns null if the AL extension is not installed.
+ */
+export function getAnalyzersPath(): string | null {
+    const ext = getALExtension();
+    return ext ? path.join(ext.extensionPath, 'bin', 'Analyzers') : null;
+}
+
+interface ALExtensionStatus {
     isRunning: boolean;
     hasLocks: boolean;
     lockedFiles: string[];
     message: string;
 }
 
-/**
- * Check if AL extension is currently running
- */
-export function isALExtensionRunning(): boolean {
+function checkALExtensionStatus(analyzerPath: string): ALExtensionStatus {
+    let isRunning = false;
     try {
-        const alExtension = vscode.extensions.getExtension('ms-dynamics-smb.al');
-        if (!alExtension) {
-            return false;
-        }
-
-        // Extension is activated if it's in the extensions list
-        return alExtension.isActive;
+        const alExtension = getALExtension();
+        isRunning = alExtension?.isActive ?? false;
     } catch (error) {
         console.warn('Error checking AL extension status:', error);
-        return false;
     }
-}
-
-/**
- * Comprehensive check of AL extension status and potential file locks
- */
-export function checkALExtensionStatus(analyzerPath: string): ALExtensionStatus {
-    const isRunning = isALExtensionRunning();
-    const lockedFiles = getLockedFiles(analyzerPath);
+    const lockedFiles = checkDirectoryForLockedFiles(analyzerPath).lockedFiles;
     const hasLocks = lockedFiles.length > 0;
 
     let message = '';
@@ -48,73 +49,38 @@ export function checkALExtensionStatus(analyzerPath: string): ALExtensionStatus 
         message = 'AL extension is not running and no file locks detected.';
     }
 
-    return {
-        isRunning,
-        hasLocks,
-        lockedFiles,
-        message,
-    };
+    return { isRunning, hasLocks, lockedFiles, message };
 }
 
 /**
- * Show user-friendly dialog for locked files scenario
+ * Show user-friendly dialog for locked files scenario.
+ * Only call this when locks are confirmed to exist.
  */
 export async function promptUserForLockedFiles(
     analyzerPath: string,
     targetVersion: string
-): Promise<'reload' | 'defer' | 'cancel'> {
+): Promise<'close-relaunch' | 'defer' | 'cancel'> {
     const status = checkALExtensionStatus(analyzerPath);
 
-    if (!status.hasLocks) {
-        return 'reload'; // No locks, proceed normally
-    }
-
     const lockedFilesList = status.lockedFiles.join(', ');
-    const message = `Files are locked by the AL extension: ${lockedFilesList}\n\nHow would you like to proceed?`;
+    const message =
+        `ALCops v${targetVersion} cannot be installed because analyzer files are locked by the AL Language extension: ${lockedFilesList}\n\n` +
+        `To install, VS Code needs to close this window and open a new empty window (without an AL project). ` +
+        `Please also close any other VS Code windows where an AL project is open before proceeding.`;
 
     const result = await vscode.window.showWarningMessage(
         message,
         { modal: true },
-        'Reload VS Code',
+        'Close Window & Relaunch',
         'Install on Next Start'
     );
 
     switch (result) {
-        case 'Reload VS Code':
-            return 'reload';
+        case 'Close Window & Relaunch':
+            return 'close-relaunch';
         case 'Install on Next Start':
             return 'defer';
         default:
             return 'cancel';
     }
-}
-
-/**
- * Show info message about deferred installation
- */
-export async function showDeferredInstallationMessage(version: string): Promise<void> {
-    await vscode.window.showInformationMessage(
-        `Installation of ALCops v${version} has been scheduled for the next VS Code startup. Please reload VS Code when convenient.`,
-        'Reload Now'
-    ).then((result) => {
-        if (result === 'Reload Now') {
-            vscode.commands.executeCommand('workbench.action.reloadWindow');
-        }
-    });
-}
-
-/**
- * Show error message with suggestions for locked files
- */
-export async function showLockedFilesError(error: Error, analyzerPath: string): Promise<void> {
-    const status = checkALExtensionStatus(analyzerPath);
-
-    let suggestion = 'Please try again or reload VS Code.';
-    if (status.hasLocks) {
-        suggestion = `Locked files: ${status.lockedFiles.join(', ')}. Try reloading VS Code to release the locks.`;
-    }
-
-    await vscode.window.showErrorMessage(
-        `Failed to install ALCops: ${error.message}\n\n${suggestion}`
-    );
 }

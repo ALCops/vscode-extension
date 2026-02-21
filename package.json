@@ -113,6 +113,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/semver": "^7.7.1",
     "@types/unzipper": "^0.10.11",
     "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
@@ -125,6 +126,7 @@
   },
   "dependencies": {
     "pe-struct": "^0.9.4",
+    "semver": "^7.7.4",
     "unzipper": "^0.10.14"
   }
 }

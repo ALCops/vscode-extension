@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { readManifest } from './manifest-manager.js';
+import { formatError } from './utils.js';
 
 /**
  * Result of checking if a file is locked
@@ -92,41 +93,8 @@ export function checkDirectoryForLockedFiles(
         return {
             isLocked: false,
             lockedFiles: [],
-            reason: `Error checking for locked files: ${error instanceof Error ? error.message : String(error)}`,
+            reason: `Error checking for locked files: ${formatError(error)}`,
         };
     }
 }
 
-/**
- * Attempt to create a test file in the target directory to verify write access
- * This is a more reliable check for directory write access on Windows
- */
-export function canWriteToDirectory(targetPath: string): boolean {
-    const testFileName = '.alcops-write-test';
-    const testFilePath = path.join(targetPath, testFileName);
-
-    try {
-        // Ensure directory exists
-        if (!fs.existsSync(targetPath)) {
-            return false;
-        }
-
-        // Try to write a test file
-        fs.writeFileSync(testFilePath, 'test', 'utf-8');
-
-        // Clean up
-        fs.unlinkSync(testFilePath);
-
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
- * Get a list of locked files in the target directory
- */
-export function getLockedFiles(targetPath: string): string[] {
-    const result = checkDirectoryForLockedFiles(targetPath);
-    return result.lockedFiles;
-}
