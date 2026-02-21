@@ -118,7 +118,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "25.x",
     "@types/semver": "^7.7.1",
-    "@types/vscode": "^1.104.0",
+    "@types/vscode": "^1.109.0",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.42.0",
     "@vscode/test-cli": "^0.0.12",
