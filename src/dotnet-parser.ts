@@ -45,8 +45,8 @@ function compareVersion(version1: string, version2: string): number {
     for (let i = 0; i < maxLength; i++) {
         const v1 = v1Parts[i] || 0;
         const v2 = v2Parts[i] || 0;
-        if (v1 > v2) return 1;
-        if (v1 < v2) return -1;
+        if (v1 > v2) { return 1; }
+        if (v1 < v2) { return -1; }
     }
     return 0;
 }
