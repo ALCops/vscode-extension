@@ -3,7 +3,7 @@ import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as unzipper from 'unzipper';
+import { unzipSync } from 'fflate';
 import * as vscode from 'vscode';
 import { compare, prerelease, valid } from 'semver';
 import { getTargetFrameworkFromAssembly } from './dotnet-parser.js';
@@ -271,10 +271,22 @@ function downloadFile(url: string, filePath: string): Promise<void> {
  */
 function extractZip(zipPath: string, extractPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        fs.createReadStream(zipPath)
-            .pipe(unzipper.Extract({ path: extractPath }))
-            .on('finish', resolve)
-            .on('error', reject);
+        try {
+            const data = fs.readFileSync(zipPath);
+            const entries = unzipSync(new Uint8Array(data));
+            for (const [entryPath, content] of Object.entries(entries)) {
+                const destPath = path.join(extractPath, entryPath);
+                if (entryPath.endsWith('/')) {
+                    fs.mkdirSync(destPath, { recursive: true });
+                } else {
+                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+                    fs.writeFileSync(destPath, content);
+                }
+            }
+            resolve();
+        } catch (error) {
+            reject(error);
+        }
     });
 }
 
