@@ -119,13 +119,13 @@
     "@types/node": "25.x",
     "@types/semver": "^7.7.1",
     "@types/vscode": "^1.109.0",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.42.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.3",
-    "eslint": "^10.0.1",
+    "eslint": "^10.0.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
