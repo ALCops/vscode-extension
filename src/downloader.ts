@@ -12,7 +12,7 @@ import { checkDirectoryForLockedFiles } from './file-lock-handler.js';
 import { stageAndReplaceFiles, cleanupOldBackups } from './file-staging.js';
 import { getALExtension, promptUserForLockedFiles } from './al-extension-handler.js';
 import { launchNewVSCodeWindow } from './vscode-launcher.js';
-import { formatError } from './utils.js';
+import { formatError, showTimedMessage } from './utils.js';
 
 const PACKAGE_NAME = 'ALCops.Analyzers';
 
@@ -230,9 +230,7 @@ async function handleLockedFiles(targetPath: string, version: string): Promise<'
 
     if (userChoice === 'defer') {
         markAsPendingUpdate(targetPath, version);
-        vscode.window.showInformationMessage(
-            `ALCops v${version} will be installed on next VS Code startup.`
-        );
+        showTimedMessage(`ALCops v${version} will be installed on next VS Code startup.`);
         return 'deferred';
     }
 

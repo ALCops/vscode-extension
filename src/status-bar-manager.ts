@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { CodeAnalyzersManager } from './code-analyzers-manager.js';
+import { showTimedMessage } from './utils.js';
 
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
@@ -170,7 +171,7 @@ export class StatusBarManager {
             const message = count === 0
                 ? 'All Code Analyzers have been disabled.'
                 : `Selected ${count} Code Analyzer${count === 1 ? '' : 's'}.`;
-            vscode.window.showInformationMessage(message);
+            showTimedMessage(message);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to update Code Analyzers: ${error}`);
             console.error('Error updating Code Analyzers:', error);

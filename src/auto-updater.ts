@@ -3,7 +3,7 @@ import { VersionManager } from './version-manager.js';
 import { queryLatestVersion, downloadALCopsAnalyzers } from './downloader.js';
 import { getPendingUpdate } from './manifest-manager.js';
 import { getAnalyzersPath } from './al-extension-handler.js';
-import { formatError } from './utils.js';
+import { formatError, showTimedMessage } from './utils.js';
 
 export class AutoUpdater {
     private readonly _onDidInstallAnalyzers = new vscode.EventEmitter<string>();
@@ -36,11 +36,11 @@ export class AutoUpdater {
      * Re-throws on failure so callers can decide whether to propagate.
      */
     async installUpdate(version: string): Promise<void> {
-        vscode.window.showInformationMessage(`ALCops: Installing v${version}...`);
+        showTimedMessage(`ALCops: Installing v${version}...`);
         try {
             await downloadALCopsAnalyzers(version);
             this._onDidInstallAnalyzers.fire(version);
-            vscode.window.showInformationMessage(`ALCops v${version} installed. Please reload VS Code to apply changes.`);
+            showTimedMessage(`ALCops v${version} installed successfully.`);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to install ALCops v${version}: ${formatError(error)}`);
             throw error;
@@ -60,7 +60,7 @@ export class AutoUpdater {
 
             const currentVersion = this.versionManager.getInstalledALCopsVersionFromManifest() ?? 'unknown';
             if (currentVersion === latestVersion) {
-                vscode.window.showInformationMessage(`ALCops is up to date (v${currentVersion})`);
+                showTimedMessage(`ALCops is up to date (v${currentVersion})`);
                 return;
             }
 
@@ -126,7 +126,7 @@ export class AutoUpdater {
         try {
             await downloadALCopsAnalyzers(targetVersion);
             this._onDidInstallAnalyzers.fire(targetVersion);
-            vscode.window.showInformationMessage(`ALCops v${targetVersion} installed successfully.`);
+            showTimedMessage(`ALCops v${targetVersion} installed successfully.`);
             return true;
         } catch (error) {
             console.error(`Failed to install ALCops v${targetVersion}:`, error);
