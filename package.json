@@ -32,9 +32,6 @@
   "categories": [
     "Linters"
   ],
-  "extensionDependencies": [
-    "ms-dynamics-smb.al"
-  ],
   "activationEvents": [
     "onStartupFinished"
   ],

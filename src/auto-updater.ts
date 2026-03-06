@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { VersionManager } from './version-manager.js';
 import { queryLatestVersion, downloadALCopsAnalyzers } from './downloader.js';
 import { getPendingUpdate } from './manifest-manager.js';
-import { getAnalyzersPath } from './al-extension-handler.js';
+import { getAnalyzersPath, getALExtension } from './al-extension-handler.js';
 import { formatError, showTimedMessage } from './utils.js';
 
 export class AutoUpdater {
@@ -52,6 +52,11 @@ export class AutoUpdater {
      */
     async checkUpdatesManually(): Promise<void> {
         try {
+            if (!getALExtension()) {
+                vscode.window.showInformationMessage('ALCops requires the AL Language extension (ms-dynamics-smb.al) to be installed.');
+                return;
+            }
+
             const latestVersion = await queryLatestVersion(this.getVersionChannel());
             if (!latestVersion) {
                 vscode.window.showErrorMessage('Could not determine latest ALCops version');
@@ -207,6 +212,11 @@ export class AutoUpdater {
      */
     async performStartupChecks(): Promise<void> {
         try {
+            if (!getALExtension()) {
+                console.log('AL extension is not installed. Skipping ALCops startup checks.');
+                return;
+            }
+
             if (await this.handlePendingUpdate()) {
                 return;
             }
@@ -226,6 +236,11 @@ export class AutoUpdater {
      * Called by the install command
      */
     async installLatestVersion(): Promise<void> {
+        if (!getALExtension()) {
+            vscode.window.showInformationMessage('ALCops requires the AL Language extension (ms-dynamics-smb.al) to be installed.');
+            return;
+        }
+
         const latestVersion = await queryLatestVersion(this.getVersionChannel());
         if (!latestVersion) {
             vscode.window.showErrorMessage('Could not determine latest ALCops version');
