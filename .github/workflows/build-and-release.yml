@@ -21,13 +21,13 @@ jobs:
           fetch-depth: 0
 
       - name: GitVersion - Setup
-        uses: gittools/actions/gitversion/setup@v4.3.3
+        uses: gittools/actions/gitversion/setup@v4.4.2
         with:
           versionSpec: "6.3.x"
 
       - name: GitVersion - Determine
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v4.3.3
+        uses: gittools/actions/gitversion/execute@v4.4.2
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
