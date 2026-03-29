@@ -4,6 +4,33 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-03-29
+
+### Added
+- Detect and display third-party code analyzers (e.g., `BusinessCentral.LinterCop.dll`) in the quick-pick menu ([#18](https://github.com/ALCops/vscode-extension/issues/18))
+- Group analyzers by source with separator labels: Microsoft Code Analyzers, ALCops Code Analyzers, and Third-Party Analyzers
+
+### Changed
+- Added `source` property to `CodeAnalyzerInfo` to distinguish default, ALCops, and third-party analyzers
+
+## [1.2.4] - 2026-03-06
+
+### Fixed
+- Removed `extensionDependencies` on AL Language extension to prevent forced activation in non-AL workspaces ([#15](https://github.com/ALCops/vscode-extension/pull/15))
+
+### Changed
+- Updated npm dev dependencies
+- Updated GitHub Actions dependencies
+
+## [1.2.3] - 2026-02-28
+
+### Added
+- Added contributing guidelines (`CONTRIBUTING.md`)
+
+### Changed
+- Replaced intrusive notification popups with non-intrusive timed messages using `showTimedMessage`
+- Bumped `@types/vscode` from 1.104.0 to 1.109.0 and updated VS Code engine to `^1.109.0`
+
 ## [1.2.2] - 2026-02-21
 
 ### Fixed
