@@ -5,6 +5,7 @@ export interface CodeAnalyzerInfo {
     setting: string;
     description: string;
     fileName: string;
+    source: 'default' | 'alcops' | 'thirdparty';
 }
 
 /**
@@ -64,6 +65,7 @@ export class CodeAnalyzersManager {
             setting: `\${analyzerFolder}${fileName}`,
             fileName: fileName,
             description: `${cleanName} analyzer from ALCops`,
+            source: 'alcops',
         };
     }
 
@@ -77,24 +79,28 @@ export class CodeAnalyzersManager {
                 setting: '${CodeCop}',
                 description: 'AL coding guidelines and best practices',
                 fileName: 'ApplicationCop.dll',
+                source: 'default',
             },
             {
                 label: 'UICop',
                 setting: '${UICop}',
                 description: 'Web client customization rules',
                 fileName: 'UICop.dll',
+                source: 'default',
             },
             {
                 label: 'PerTenantExtensionCop',
                 setting: '${PerTenantExtensionCop}',
                 description: 'Per-tenant extension installation rules',
                 fileName: 'PerTenantExtensionCop.dll',
+                source: 'default',
             },
             {
                 label: 'AppSourceCop',
                 setting: '${AppSourceCop}',
                 description: 'AppSource marketplace publishing requirements',
                 fileName: 'AppSourceCop.dll',
+                source: 'default',
             }
         ];
     }
@@ -123,6 +129,51 @@ export class CodeAnalyzersManager {
     }
 
     /**
+     * Discover third-party analyzers from the current al.codeAnalyzers setting.
+     * Any entry that is not a known analyzer (defaults, ALCops manifest, Common library)
+     * is treated as a third-party analyzer.
+     */
+    discoverThirdPartyAnalyzers(activeAnalyzers: string[]): CodeAnalyzerInfo[] {
+        const commonLibrary = this.getCommonLibrarySetting();
+        const knownSettings = new Set([
+            ...this.analyzersList.map(a => a.setting),
+            commonLibrary,
+        ]);
+
+        return activeAnalyzers
+            .filter(entry => !knownSettings.has(entry))
+            .map(entry => this.parseThirdPartyAnalyzer(entry));
+    }
+
+    /**
+     * Parse a third-party analyzer setting string into CodeAnalyzerInfo
+     */
+    private parseThirdPartyAnalyzer(setting: string): CodeAnalyzerInfo {
+        let fileName: string;
+        let label: string;
+
+        // Handle ${analyzerFolder}Name.dll format
+        const analyzerFolderMatch = setting.match(/^\$\{analyzerFolder\}(.+)$/);
+        if (analyzerFolderMatch) {
+            fileName = analyzerFolderMatch[1];
+            label = fileName.replace(/\.dll$/i, '');
+        } else {
+            // Handle full/relative paths or plain names
+            const segments = setting.replace(/\\/g, '/').split('/');
+            fileName = segments[segments.length - 1];
+            label = fileName.replace(/\.dll$/i, '') || setting;
+        }
+
+        return {
+            label,
+            setting,
+            description: 'Third-party analyzer (detected from settings)',
+            fileName,
+            source: 'thirdparty',
+        };
+    }
+
+    /**
      * Check if an analyzer is currently enabled in the list
      */
     isCodeAnalyzerEnabled(analyzer: CodeAnalyzerInfo, activeAnalyzers: string[]): boolean {
@@ -133,7 +184,7 @@ export class CodeAnalyzersManager {
      * Process the new list of selected analyzers and add Common library if needed
      * Only add Common.dll when custom ALCops (from manifest) are selected
      */
-    processSelectedAnalyzers(selectedAnalyzers: CodeAnalyzerInfo[], currentAnalyzers: string[]): string[] {
+    processSelectedAnalyzers(selectedAnalyzers: CodeAnalyzerInfo[], currentAnalyzers: string[], thirdPartyAnalyzers: CodeAnalyzerInfo[] = []): string[] {
         const defaultAnalyzers = this.getDefaultCodeAnalyzers();
 
         // Custom analyzers are anything in analyzersList that's not in defaultAnalyzers
@@ -141,7 +192,7 @@ export class CodeAnalyzersManager {
             !defaultAnalyzers.some(d => d.setting === analyzer.setting)
         );
 
-        // Get non-Code Analyzer analyzers (remove ALL Code Analyzers: both default and custom)
+        // Get non-Code Analyzer analyzers (remove ALL known analyzers: default, custom, third-party)
         const nonCodeAnalyzerAnalyzers = currentAnalyzers.filter(analyzer => {
             // Remove default AL Code Analyzers
             const isDefaultAnalyzer = defaultAnalyzers.some(ca => ca.setting === analyzer);
@@ -149,20 +200,22 @@ export class CodeAnalyzersManager {
             const isCustomAnalyzer = customAnalyzers.some(ca => ca.setting === analyzer);
             // Remove common library
             const isCommonLib = analyzer === this.getCommonLibrarySetting();
+            // Remove third-party analyzers (so deselection actually removes them)
+            const isThirdParty = thirdPartyAnalyzers.some(tp => tp.setting === analyzer);
 
             // Keep only analyzers that are NOT any of these
-            return !isDefaultAnalyzer && !isCustomAnalyzer && !isCommonLib;
+            return !isDefaultAnalyzer && !isCustomAnalyzer && !isCommonLib && !isThirdParty;
         });
 
         // Add selected analyzer settings
         const selectedSettings = selectedAnalyzers.map(analyzer => analyzer.setting);
 
-        // Check if any CUSTOM analyzer is selected
+        // Check if any ALCops analyzer is selected (not third-party)
         const hasCustomAnalyzerSelected = selectedAnalyzers.some(analyzer =>
             customAnalyzers.some(custom => custom.setting === analyzer.setting)
         );
 
-        // Only add the common library if a custom analyzer is selected
+        // Only add the common library if an ALCops analyzer is selected
         if (hasCustomAnalyzerSelected) {
             const commonLibrary = this.getCommonLibrarySetting();
             if (!selectedSettings.includes(commonLibrary)) {

@@ -138,13 +138,29 @@ export class StatusBarManager {
         const configTarget = this.getCurrentConfigTarget();
         const currentAnalyzers = this.getActiveAnalyzers(uri);
 
-        // Create quick-pick items with current state
-        const quickPickItems = availableCops.map(cop => ({
+        // Discover third-party analyzers from current settings
+        const thirdPartyAnalyzers = this.codeAnalyzersManager.discoverThirdPartyAnalyzers(currentAnalyzers);
+
+        // Create quick-pick items for known analyzers
+        const quickPickItems: (vscode.QuickPickItem & { setting?: string })[] = availableCops.map(cop => ({
             label: cop.label,
             description: cop.description,
             setting: cop.setting,
             picked: this.isCodeAnalyzerEnabled(cop)
         }));
+
+        // Add third-party analyzers with separator
+        if (thirdPartyAnalyzers.length > 0) {
+            quickPickItems.push({ label: 'Third-Party Analyzers', kind: vscode.QuickPickItemKind.Separator });
+            for (const tp of thirdPartyAnalyzers) {
+                quickPickItems.push({
+                    label: tp.label,
+                    description: tp.description,
+                    setting: tp.setting,
+                    picked: true, // always picked since they exist in current settings
+                });
+            }
+        }
 
         // Show quick-pick menu
         const selectedCops = await vscode.window.showQuickPick(quickPickItems, {
@@ -158,16 +174,18 @@ export class StatusBarManager {
             return;
         }
 
-        // Process selected cops using CodeAnalyzersManager
-        const selectedCopObjects = selectedCops.map(selected =>
-            availableCops.find(cop => cop.setting === selected.setting)!
-        );
+        // Map selected items back to CodeAnalyzerInfo objects
+        const allKnownAnalyzers = [...availableCops, ...thirdPartyAnalyzers];
+        const selectedCopObjects = selectedCops
+            .filter(selected => selected.setting) // exclude separator items
+            .map(selected => allKnownAnalyzers.find(cop => cop.setting === selected.setting)!)
+            .filter(Boolean);
 
-        const newAnalyzers = this.codeAnalyzersManager.processSelectedAnalyzers(selectedCopObjects, currentAnalyzers);
+        const newAnalyzers = this.codeAnalyzersManager.processSelectedAnalyzers(selectedCopObjects, currentAnalyzers, thirdPartyAnalyzers);
 
         try {
             await alConfig.update('codeAnalyzers', newAnalyzers, configTarget);
-            const count = selectedCops.length;
+            const count = selectedCopObjects.length;
             const message = count === 0
                 ? 'All Code Analyzers have been disabled.'
                 : `Selected ${count} Code Analyzer${count === 1 ? '' : 's'}.`;
