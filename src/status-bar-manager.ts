@@ -141,26 +141,38 @@ export class StatusBarManager {
         // Discover third-party analyzers from current settings
         const thirdPartyAnalyzers = this.codeAnalyzersManager.discoverThirdPartyAnalyzers(currentAnalyzers);
 
-        // Create quick-pick items for known analyzers
-        const quickPickItems: (vscode.QuickPickItem & { setting?: string })[] = availableCops.map(cop => ({
+        // Group analyzers by source
+        const defaultAnalyzers = availableCops.filter(cop => cop.source === 'default');
+        const alCopsAnalyzers = availableCops.filter(cop => cop.source === 'alcops');
+
+        const quickPickItems: (vscode.QuickPickItem & { setting?: string })[] = [];
+
+        const addGroup = (label: string, analyzers: { label: string; description: string; setting: string; picked: boolean }[]) => {
+            if (analyzers.length === 0) { return; }
+            quickPickItems.push({ label, kind: vscode.QuickPickItemKind.Separator });
+            quickPickItems.push(...analyzers);
+        };
+
+        addGroup('Microsoft Code Analyzers', defaultAnalyzers.map(cop => ({
             label: cop.label,
             description: cop.description,
             setting: cop.setting,
-            picked: this.isCodeAnalyzerEnabled(cop)
-        }));
+            picked: this.isCodeAnalyzerEnabled(cop),
+        })));
 
-        // Add third-party analyzers with separator
-        if (thirdPartyAnalyzers.length > 0) {
-            quickPickItems.push({ label: 'Third-Party Analyzers', kind: vscode.QuickPickItemKind.Separator });
-            for (const tp of thirdPartyAnalyzers) {
-                quickPickItems.push({
-                    label: tp.label,
-                    description: tp.description,
-                    setting: tp.setting,
-                    picked: true, // always picked since they exist in current settings
-                });
-            }
-        }
+        addGroup('ALCops Code Analyzers', alCopsAnalyzers.map(cop => ({
+            label: cop.label,
+            description: cop.description,
+            setting: cop.setting,
+            picked: this.isCodeAnalyzerEnabled(cop),
+        })));
+
+        addGroup('Third-Party Analyzers', thirdPartyAnalyzers.map(tp => ({
+            label: tp.label,
+            description: tp.description,
+            setting: tp.setting,
+            picked: true,
+        })));
 
         // Show quick-pick menu
         const selectedCops = await vscode.window.showQuickPick(quickPickItems, {
