@@ -16,6 +16,12 @@ import { formatError, showTimedMessage } from './utils.js';
 
 const PACKAGE_NAME = 'ALCops.Analyzers';
 
+function getUserAgent(): string {
+    const extension = vscode.extensions.getExtension('arthurvdv.alcops');
+    const version = extension?.packageJSON?.version ?? '0.0.0';
+    return `ALCops-VSCode/${version}`;
+}
+
 class InstallationMutex {
     private isLocked = false;
     private queue: Array<() => void> = [];
@@ -115,7 +121,7 @@ function httpsGetWithRedirects(
     callback: (response: http.IncomingMessage) => void,
     onError: (err: Error) => void
 ): void {
-    https.get(url, (response) => {
+    https.get(url, { headers: { 'User-Agent': getUserAgent() } }, (response) => {
         if (response.statusCode === 301 || response.statusCode === 302) {
             const redirectUrl = response.headers.location;
             if (redirectUrl) { httpsGetWithRedirects(redirectUrl, callback, onError); return; }
