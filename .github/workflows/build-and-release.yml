@@ -66,4 +66,4 @@ jobs:
       - name: Publish to VS Code Marketplace
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }} --packagePath ./alcops-${{ steps.gitversion.outputs.semVer }}.vsix
+          vsce publish -p ${{ secrets.VISUAL_STUDIO_MARKETPLACE_PAT }} --packagePath ./alcops-${{ steps.gitversion.outputs.semVer }}.vsix
