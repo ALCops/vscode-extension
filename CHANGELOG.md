@@ -9,6 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Added
 - Send `User-Agent` header (`ALCops-VSCode/{version}`) on all NuGet HTTP requests for download statistics tracking on NuGet.org
 
+### Fixed
+- Add netstandard fallback in `findMatchingLibFolder` to support AL extension assemblies targeting netstandard2.0 (e.g., netstandard2.1 matches netstandard2.0)
+- Update token name for VS Code Marketplace publishing in CI workflow
+
+### Changed
+- Replace `pe-struct` PE parsing with lightweight binary `TargetFrameworkAttribute` string search for .NET framework detection, removing the `pe-struct` dependency
+- Migrate to unified `typescript-eslint` package, replacing legacy `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser`
+- Update npm dev dependencies (TypeScript 5.9.3 → 6.0.2 and others)
+- Update GitHub Actions dependencies
+
 ## [1.2.5] - 2026-03-29
 
 ### Added

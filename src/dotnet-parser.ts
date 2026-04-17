@@ -1,52 +1,70 @@
 import { promises as fs } from 'node:fs';
-import * as PEStruct from 'pe-struct';
+
+const ATTRIBUTE_NAME = 'TargetFrameworkAttribute';
+
+const TFM_PREFIXES = [
+    '.NETCoreApp,Version=v',
+    '.NETStandard,Version=v',
+    '.NETFramework,Version=v',
+] as const;
+
+const VERSION_CHAR_REGEX = /^[0-9.]+/;
 
 /**
- * Reads the assembly version from a .NET assembly and determines the target framework.
- * 
- * Version logic:
- * - Version <= 16.0.21.53261: use netstandard2.1
- * - Version > 16.0.21.53261: use net8.0
+ * Extract the Target Framework Moniker from a compiled .NET assembly (.dll)
+ * by scanning the binary for the TargetFrameworkAttribute metadata string.
+ *
+ * Uses only Buffer.indexOf() (native C++ byte scan) for performance on large files.
+ * Does not execute the assembly or require the .NET runtime.
+ *
+ * @returns Short TFM (e.g. "net8.0", "netstandard2.1") or null if not found.
  */
-export async function getTargetFrameworkFromAssembly(dllPath: string): Promise<string> {
+export async function getTargetFrameworkFromAssembly(dllPath: string): Promise<string | null> {
+    let buffer: Buffer;
     try {
-        const buf = await fs.readFile(dllPath);
-        // Convert Buffer to ArrayBuffer for pe-struct
-        const arrayBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-        const pe = PEStruct.load(arrayBuffer);
-
-        // Access the Assembly metadata table
-        if (!pe?.mdtAssembly?.values || pe.mdtAssembly.values.length === 0) {
-            throw new Error('No Assembly metadata table found');
-        }
-
-        const asm = pe.mdtAssembly.values[0];
-
-        // Extract version components from Assembly table
-        const major = asm.MajorVersion.value ?? 0;
-        const minor = asm.MinorVersion.value ?? 0;
-        const build = asm.BuildNumber.value ?? 0;
-        const rev = asm.RevisionNumber.value ?? 0;
-
-        const versionString = `${major}.${minor}.${build}.${rev}`;
-
-        // Compare version: if <= 16.0.21.53261, use netstandard2.1; otherwise use net8.0
-        return compareVersion(versionString, '16.0.21.53261') <= 0 ? 'netstandard2.1' : 'net8.0';
-    } catch (error) {
-        throw new Error(`Failed to parse assembly: ${error instanceof Error ? error.message : String(error)}`);
+        buffer = await fs.readFile(dllPath);
+    } catch {
+        return null;
     }
+
+    if (buffer.indexOf(ATTRIBUTE_NAME, 0, 'utf8') === -1) {
+        return null;
+    }
+
+    for (const prefix of TFM_PREFIXES) {
+        const idx = buffer.indexOf(prefix, 0, 'utf8');
+        if (idx === -1) { continue; }
+
+        // Extract version digits from the bytes immediately after the prefix
+        const versionStart = idx + Buffer.byteLength(prefix, 'utf8');
+        const slice = buffer.subarray(versionStart, Math.min(versionStart + 16, buffer.length));
+        const versionStr = slice.toString('utf8');
+
+        const match = VERSION_CHAR_REGEX.exec(versionStr);
+        if (!match) { continue; }
+
+        const version = match[0].replace(/\.+$/, '');
+        if (version.length === 0) { continue; }
+
+        const fullTfm = `${prefix}${version}`;
+        return toShortTfm(fullTfm);
+    }
+
+    return null;
 }
 
-function compareVersion(version1: string, version2: string): number {
-    const v1Parts = version1.split('.').map(x => parseInt(x, 10));
-    const v2Parts = version2.split('.').map(x => parseInt(x, 10));
-
-    const maxLength = Math.max(v1Parts.length, v2Parts.length);
-    for (let i = 0; i < maxLength; i++) {
-        const v1 = v1Parts[i] || 0;
-        const v2 = v2Parts[i] || 0;
-        if (v1 > v2) { return 1; }
-        if (v1 < v2) { return -1; }
-    }
-    return 0;
+/**
+ * Convert a canonical framework moniker to the short TFM form used by the .NET SDK.
+ *
+ * Examples:
+ *   ".NETCoreApp,Version=v8.0"     → "net8.0"
+ *   ".NETStandard,Version=v2.1"    → "netstandard2.1"
+ *   ".NETFramework,Version=v4.8"   → "net4.8"
+ */
+export function toShortTfm(tfm: string | null): string | null {
+    if (!tfm) { return null; }
+    return tfm
+        .replace('.NETCoreApp,Version=v', 'net')
+        .replace('.NETStandard,Version=v', 'netstandard')
+        .replace('.NETFramework,Version=v', 'net');
 }
