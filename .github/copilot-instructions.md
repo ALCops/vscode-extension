@@ -14,7 +14,7 @@ npm run compile         # TypeScript compile (for tests)
 npx vsce package        # Package VSIX
 ```
 
-Run in VS Code: press F5 to launch the Extension Development Host. No test suite exists yet (`npm test` is configured but no test files are present).
+Run in VS Code: press F5 to launch the Extension Development Host.
 
 ## Architecture
 
@@ -32,8 +32,8 @@ All installs go through a single `InstallationMutex` to prevent concurrent downl
 
 1. Download `.nupkg` from NuGet v2 API to a temp directory
 2. Extract with `fflate` (pure JS, zero transitive deps)
-3. Read `Microsoft.Dynamics.Nav.CodeAnalysis.dll` to determine the target .NET framework (netstandard2.1 vs net8.0) by scanning for the `TargetFrameworkAttribute` metadata string
-4. Match the correct `lib/` subfolder from the NuGet package
+3. Read `Microsoft.Dynamics.Nav.CodeAnalysis.dll` to determine the target .NET framework (e.g., net8.0, netstandard2.1) using `Buffer.indexOf()` to scan for the `TargetFrameworkAttribute` metadata string in the binary (no PE parsing, no .NET runtime required)
+4. Match the correct `lib/` subfolder from the NuGet package, with fallback logic: net* targets fall back through lower minor versions then netstandard2.1; netstandard targets accept a higher minor version of the same major (e.g., netstandard2.1 satisfies netstandard2.0)
 5. If analyzer DLLs are locked (Windows): defer to next startup or close-and-relaunch VS Code
 6. Stage files with backup → copy → rollback on failure (`file-staging.ts`)
 7. Write `.alcops-manifest.json` with version, AL extension version, framework, and file list
@@ -56,6 +56,7 @@ On Windows, the AL Language extension locks analyzer DLLs while running. The ext
 - **ESLint rules**: naming conventions for imports, curly braces required, strict equality (`===`), semicolons required.
 - **Versioning**: GitVersion with GitHubFlow calculates SemVer from git history. Never manually edit `version` in `package.json`. Branch from `main`, release via `release/*` branches and `v*` tags.
 - **CI checks before PR**: run `npm run lint && npm run typecheck && npm run unit-test`.
+- **Changelog**: every PR must update `CHANGELOG.md` under `## [Unreleased]` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format. See `.github/instructions/changelog.instructions.md` for details.
 
 ## Testing
 
