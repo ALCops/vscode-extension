@@ -4,6 +4,14 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Scope `tsconfig.json` to `src/` via `include` and add explicit `types: ["node"]` to fix TS6059 errors from test files outside `rootDir`
+
+### Added
+- Add CI workflow (`.github/workflows/ci.yml`) to run lint, typecheck, and unit tests on pull requests
+
 ## [1.3.0] - 2026-04-17
 
 ### Added
