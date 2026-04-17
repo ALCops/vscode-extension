@@ -1,13 +1,18 @@
-name: CI
+name: Build and Test
 
 on:
-  pull_request:
-    branches:
-      - main
-      - "release/**"
+  workflow_call:
+    inputs:
+      draft-check:
+        description: "Whether to check if PR is draft"
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
 
 jobs:
-  ci:
+  build-and-test:
+    if: ${{ !inputs.draft-check || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,3 +34,6 @@ jobs:
 
       - name: Unit tests
         run: npm run unit-test
+
+      - name: Package validation
+        run: npx vsce package --no-git-tag-version
