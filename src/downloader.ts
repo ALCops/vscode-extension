@@ -304,13 +304,11 @@ async function getTargetFramework(dllPath: string): Promise<string> {
         throw new Error(`DLL file not found: ${dllFile}`);
     }
 
-    try {
-        // Use native .NET assembly parser to read metadata
-        const frameworkName = await getTargetFrameworkFromAssembly(dllFile);
-        return frameworkName;
-    } catch (error) {
-        throw new Error(`Failed to read target framework from DLL: ${formatError(error)}`);
+    const frameworkName = await getTargetFrameworkFromAssembly(dllFile);
+    if (!frameworkName) {
+        throw new Error(`Could not determine target framework from: ${dllFile}`);
     }
+    return frameworkName;
 }
 
 /**

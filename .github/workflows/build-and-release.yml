@@ -43,6 +43,9 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Unit tests
+        run: npm run unit-test
+
       - name: Update version in package.json
         run: |
           npm version ${{ steps.gitversion.outputs.semVer }} --no-git-tag-version
