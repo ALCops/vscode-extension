@@ -4,6 +4,16 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Update `engines.vscode` from `^1.110.0` to `^1.116.0` to match `@types/vscode`, fixing `vsce package` build failure
+
+### Changed
+- Restructure CI into DRY pattern: extract shared `build-test.yml` reusable workflow, rename `ci.yml` to `pull-request.yml`, and have `build-and-release.yml` reuse `build-test.yml` (matching `ALCops/Analyzers` repo pattern)
+- Add `vsce package` validation step to CI to catch `@types/vscode` vs `engines.vscode` mismatches on pull requests before merge
+- Use `npx vsce` instead of global `npm install -g @vscode/vsce` in build-and-release workflow
+
 ## [1.3.0] - 2026-04-17
 
 ### Added
