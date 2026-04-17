@@ -4,16 +4,6 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-- Update `engines.vscode` from `^1.110.0` to `^1.116.0` to match `@types/vscode`, fixing `vsce package` build failure
-
-### Changed
-- Restructure CI into DRY pattern: extract shared `build-test.yml` reusable workflow, rename `ci.yml` to `pull-request.yml`, and have `build-and-release.yml` reuse `build-test.yml` (matching `ALCops/Analyzers` repo pattern)
-- Add `vsce package` validation step to CI to catch `@types/vscode` vs `engines.vscode` mismatches on pull requests before merge
-- Use `npx vsce` instead of global `npm install -g @vscode/vsce` in build-and-release workflow
-
 ## [1.3.0] - 2026-04-17
 
 ### Added
@@ -24,12 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Add netstandard fallback in `findMatchingLibFolder` to support AL extension assemblies targeting netstandard2.0 (e.g., netstandard2.1 matches netstandard2.0)
 - Update token name for VS Code Marketplace publishing in CI workflow
 - Scope `tsconfig.json` to `src/` via `include` and add explicit `types: ["node"]` to fix TS6059 errors from test files outside `rootDir`
+- Update `engines.vscode` from `^1.110.0` to `^1.116.0` to match `@types/vscode`, fixing `vsce package` build failure
 
 ### Changed
 - Replace `pe-struct` PE parsing with lightweight binary `TargetFrameworkAttribute` string search for .NET framework detection, removing the `pe-struct` dependency
 - Migrate to unified `typescript-eslint` package, replacing legacy `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser`
 - Update npm dev dependencies (TypeScript 5.9.3 → 6.0.2 and others)
 - Update GitHub Actions dependencies
+- Restructure CI into DRY pattern: extract shared `build-test.yml` reusable workflow, rename `ci.yml` to `pull-request.yml`, and have `build-and-release.yml` reuse `build-test.yml` (matching `ALCops/Analyzers` repo pattern)
+- Add `vsce package` validation step to CI to catch `@types/vscode` vs `engines.vscode` mismatches on pull requests before merge
+- Use `npx vsce` instead of global `npm install -g @vscode/vsce` in build-and-release workflow
 
 ## [1.2.5] - 2026-03-29
 
