@@ -314,7 +314,7 @@ async function getTargetFramework(dllPath: string): Promise<string> {
 /**
  * Find the matching lib folder that corresponds to the target framework
  */
-function findMatchingLibFolder(extractedPackagePath: string, targetFramework: string): string | null {
+export function findMatchingLibFolder(extractedPackagePath: string, targetFramework: string): string | null {
     const libPath = path.join(extractedPackagePath, 'lib');
 
     if (!fs.existsSync(libPath)) {
@@ -344,6 +344,32 @@ function findMatchingLibFolder(extractedPackagePath: string, targetFramework: st
         // Try netstandard as fallback
         if (folders.includes('netstandard2.1')) {
             return 'netstandard2.1';
+        }
+    }
+
+    // netstandard fallback: accept a higher minor version (e.g., netstandard2.1 for netstandard2.0)
+    if (targetFramework.startsWith('netstandard')) {
+        const match = targetFramework.match(/^netstandard(\d+)\.(\d+)$/);
+        if (match) {
+            const major = parseInt(match[1]);
+            const minor = parseInt(match[2]);
+            let bestCandidate: string | null = null;
+            let bestMinor = Infinity;
+
+            for (const folder of folders) {
+                const fm = folder.match(/^netstandard(\d+)\.(\d+)$/);
+                if (!fm) { continue; }
+                const fMajor = parseInt(fm[1]);
+                const fMinor = parseInt(fm[2]);
+                if (fMajor === major && fMinor > minor && fMinor < bestMinor) {
+                    bestMinor = fMinor;
+                    bestCandidate = folder;
+                }
+            }
+
+            if (bestCandidate) {
+                return bestCandidate;
+            }
         }
     }
 
