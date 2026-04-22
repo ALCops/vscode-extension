@@ -51,6 +51,15 @@
         "title": "ALCops: Select Code Analyzers"
       }
     ],
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "alcops.json",
+          "ALCops.json"
+        ],
+        "url": "https://raw.githubusercontent.com/ALCops/Analyzers/main/src/ALCops.Common/Settings/alcops.schema.json"
+      }
+    ],
     "configuration": {
       "title": "ALCops",
       "properties": {
