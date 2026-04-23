@@ -4,6 +4,13 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-04-23
+
+### Changed
+- Switch NuGet version queries from V3 Flat Container to V3 Registration API (`registration5-gz-semver2`), which provides listing status per version and excludes unlisted packages from update suggestions
+- Switch package downloads from V2 API (`www.nuget.org/api/v2/package/`) to V3 Flat Container (`api.nuget.org/v3-flatcontainer/`), fixing User-Agent not appearing in NuGet.org download statistics
+- Handle paginated NuGet Registration API responses for packages with 128+ versions (external pages fetched in parallel)
+
 ## [1.3.1] - 2026-04-22
 
 ### Added

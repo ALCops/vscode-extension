@@ -3,6 +3,7 @@ import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as zlib from 'zlib';
 import { unzipSync } from 'fflate';
 import * as vscode from 'vscode';
 import { compare, prerelease, valid } from 'semver';
@@ -90,13 +91,13 @@ export function verifyAnalyzerInstallation(targetPath: string): VerificationResu
  */
 export async function queryLatestVersion(channel: 'stable' | 'beta' | 'alpha'): Promise<string | null> {
     try {
-        const indexUrl = `https://api.nuget.org/v3-flatcontainer/${PACKAGE_NAME.toLowerCase()}/index.json`;
-        const versions = await queryNuGetIndex(indexUrl);
+        const registrationVersions = await queryNuGetRegistration(PACKAGE_NAME);
 
-        const filtered = versions
-            .filter(v => valid(v) !== null)
+        const filtered = registrationVersions
+            .filter(v => v.listed)
+            .filter(v => valid(v.version) !== null)
             .filter(v => {
-                const pre = prerelease(v);
+                const pre = prerelease(v.version);
                 switch (channel) {
                     case 'stable': return pre === null;
                     case 'beta': return pre === null || !pre.includes('alpha');
@@ -109,7 +110,7 @@ export async function queryLatestVersion(channel: 'stable' | 'beta' | 'alpha'): 
             return null;
         }
 
-        return filtered.sort((a, b) => compare(a, b)).at(-1)!;
+        return filtered.sort((a, b) => compare(a.version, b.version)).at(-1)!.version;
     } catch (error) {
         console.error('Error querying NuGet for latest version:', error);
         return null;
@@ -130,24 +131,106 @@ function httpsGetWithRedirects(
     }).on('error', onError);
 }
 
-function queryNuGetIndex(indexUrl: string): Promise<string[]> {
+export interface RegistrationVersion {
+    version: string;
+    listed: boolean;
+    packageContent: string;
+}
+
+interface RegistrationCatalogEntry {
+    version: string;
+    listed?: boolean;
+}
+
+interface RegistrationLeaf {
+    catalogEntry: RegistrationCatalogEntry;
+    packageContent: string;
+}
+
+interface RegistrationPage {
+    '@id': string;
+    items?: RegistrationLeaf[];
+}
+
+export interface RegistrationIndex {
+    items: RegistrationPage[];
+}
+
+/**
+ * Fetches a URL and returns parsed JSON, handling gzip decompression when the
+ * server responds with `Content-Encoding: gzip`. Used for NuGet V3 Registration
+ * API requests which are always gzip-compressed in the `-gz-semver2` hive.
+ */
+function fetchJsonWithGzip<T>(url: string): Promise<T> {
     return new Promise((resolve, reject) => {
-        httpsGetWithRedirects(indexUrl, (response) => {
+        httpsGetWithRedirects(url, (response) => {
             if (response.statusCode !== 200) {
-                reject(new Error(`Failed to query NuGet index. Status: ${response.statusCode}`));
+                reject(new Error(`HTTP ${response.statusCode} for ${url}`));
                 return;
             }
-            let data = '';
-            response.on('data', (chunk) => { data += chunk; });
+
+            const chunks: Buffer[] = [];
+            response.on('data', (chunk: Buffer) => { chunks.push(chunk); });
             response.on('end', () => {
                 try {
-                    resolve(JSON.parse(data).versions || []);
+                    const buffer = Buffer.concat(chunks);
+                    const isGzip = response.headers['content-encoding'] === 'gzip';
+                    const text = isGzip ? zlib.gunzipSync(buffer).toString('utf-8') : buffer.toString('utf-8');
+                    resolve(JSON.parse(text) as T);
                 } catch (error) {
-                    reject(new Error(`Failed to parse NuGet index response: ${formatError(error)}`));
+                    reject(new Error(`Failed to parse response from ${url}: ${formatError(error)}`));
                 }
             });
         }, reject);
     });
+}
+
+/**
+ * Parses a NuGet V3 Registration index response into a flat list of versions.
+ * Handles the nested page/leaf/catalogEntry structure. All pages must have their
+ * items inlined (external pages should be resolved before calling this function).
+ */
+export function parseRegistrationIndex(json: RegistrationIndex): RegistrationVersion[] {
+    const versions: RegistrationVersion[] = [];
+    for (const page of json.items) {
+        if (page.items) {
+            for (const leaf of page.items) {
+                versions.push({
+                    version: leaf.catalogEntry.version,
+                    listed: leaf.catalogEntry.listed ?? true,
+                    packageContent: leaf.packageContent,
+                });
+            }
+        }
+    }
+    return versions;
+}
+
+/**
+ * Queries the NuGet V3 Registration API for package versions with metadata.
+ *
+ * Uses the `registration5-gz-semver2` hive which includes SemVer 2.0.0 packages
+ * and provides listing status per version. The response is gzip-compressed.
+ *
+ * For packages with <128 versions, all page data is inlined in the index response.
+ * For packages with 128+ versions, pages are external references that must be
+ * fetched separately. External pages are fetched in parallel.
+ */
+export async function queryNuGetRegistration(packageId: string): Promise<RegistrationVersion[]> {
+    const registrationUrl = `https://api.nuget.org/v3/registration5-gz-semver2/${packageId.toLowerCase()}/index.json`;
+    const index = await fetchJsonWithGzip<RegistrationIndex>(registrationUrl);
+
+    const externalPages = index.items.filter(page => !page.items);
+    if (externalPages.length > 0) {
+        const fetched = await Promise.all(
+            externalPages.map(page => fetchJsonWithGzip<RegistrationPage>(page['@id']))
+        );
+        for (let i = 0; i < externalPages.length; i++) {
+            externalPages[i].items = fetched[i].items;
+        }
+    }
+
+    return parseRegistrationIndex(index);
 }
 
 export async function downloadALCopsAnalyzers(version: string): Promise<void> {
@@ -159,7 +242,9 @@ export async function downloadALCopsAnalyzers(version: string): Promise<void> {
  * Internal implementation (wrapped by mutex)
  */
 async function downloadALCopsAnalyzersInternal(version: string): Promise<void> {
-    const downloadUrl = `https://www.nuget.org/api/v2/package/${PACKAGE_NAME}/${version}`;
+    const lowerPackageName = PACKAGE_NAME.toLowerCase();
+    const lowerVersion = version.toLowerCase();
+    const downloadUrl = `https://api.nuget.org/v3-flatcontainer/${lowerPackageName}/${lowerVersion}/${lowerPackageName}.${lowerVersion}.nupkg`;
     let tempDir: string | null = null;
 
     try {
