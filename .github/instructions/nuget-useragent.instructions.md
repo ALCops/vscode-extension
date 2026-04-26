@@ -2,7 +2,7 @@
 applyTo: '**'
 ---
 
-# TODO: NuGet User-Agent for Azure DevOps Extension
+# NuGet User-Agent for Azure DevOps Extension
 
 ## Context
 
