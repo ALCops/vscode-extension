@@ -401,4 +401,28 @@ describe('queryNuGetRegistration', () => {
 
         await expect(queryNuGetRegistration('nonexistent')).rejects.toThrow('HTTP 404');
     });
+
+    it('sends NuGet VS VSIX User-Agent header with version and OS info', async () => {
+        const indexBody: RegistrationIndex = {
+            items: [{
+                '@id': 'https://api.nuget.org/v3/registration5-gz-semver2/test/index.json#page/0',
+                items: [{
+                    catalogEntry: { version: '1.0.0', listed: true },
+                    packageContent: 'https://api.nuget.org/v3-flatcontainer/test/1.0.0/test.1.0.0.nupkg',
+                }],
+            }],
+        };
+
+        let capturedOpts: Record<string, unknown> = {};
+        mockHttpsGet.mockImplementation((_url: unknown, opts: unknown, cb: unknown) => {
+            capturedOpts = opts as Record<string, unknown>;
+            (cb as (r: unknown) => void)(createMockResponse(indexBody));
+            const req = new EventEmitter();
+            return Object.assign(req, { on: vi.fn().mockReturnThis() });
+        });
+
+        await queryNuGetRegistration('Test');
+        const headers = capturedOpts.headers as Record<string, string>;
+        expect(headers['User-Agent']).toMatch(/^NuGet VS VSIX\/\d+\.\d+\.\d+\S* \(Node\.js v\d+\.\d+\.\d+; /);
+    });
 });
