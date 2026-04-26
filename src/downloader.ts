@@ -20,7 +20,7 @@ const PACKAGE_NAME = 'ALCops.Analyzers';
 function getUserAgent(): string {
     const extension = vscode.extensions.getExtension('arthurvdv.alcops');
     const version = extension?.packageJSON?.version ?? '0.0.0';
-    return `ALCops-VSCode/${version}`;
+    return `NuGet VS VSIX/${version} (Node.js ${process.version}; ${os.type()} ${os.release()})`;
 }
 
 class InstallationMutex {
