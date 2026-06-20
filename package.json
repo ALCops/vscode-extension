@@ -122,7 +122,7 @@
     "unit-test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "25.x",
+    "@types/node": "26.x",
     "@types/semver": "^7.7.1",
     "@types/vscode": "^1.120.0",
     "@vscode/vsce": "^3.9.2",
