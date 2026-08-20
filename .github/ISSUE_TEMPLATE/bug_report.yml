@@ -1,0 +1,113 @@
+name: Bug Report
+description: Report a bug in the ALCops VS Code extension
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        Before you create a new issue, please:
+        🔎 **Search [existing issues](https://github.com/ALCops/vscode-extension/issues)** to avoid duplicates.
+        ✅ **Try reproducing on the [latest version](https://marketplace.visualstudio.com/items?itemName=arthurvdv.alcops)** of the ALCops extension.
+
+        > [!IMPORTANT]
+        > Is your issue about an **analyzer rule or diagnostic** (false positive, false negative, or crash in PlatformCop, LinterCop, ApplicationCop, ...)?
+        > Those live in a different repository — please file it in [ALCops/Analyzers](https://github.com/ALCops/Analyzers/issues/new/choose) instead.
+        > This repository is only for the VS Code extension itself (downloading, installing, and managing the analyzers).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: Describe the bug
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Open VS Code
+        2. Run command '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+      placeholder: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: What actually happened.
+      placeholder: Actual behavior
+    validations:
+      required: true
+
+  - type: input
+    id: alcops-extension-version
+    attributes:
+      label: ALCops extension version
+      description: Find it in the Extensions view under "ALCops".
+      placeholder: e.g., 1.3.3
+    validations:
+      required: true
+
+  - type: input
+    id: al-language-extension-version
+    attributes:
+      label: AL Language extension version
+      description: Find it in the Extensions view under "AL Language extension for Microsoft Dynamics 365 Business Central".
+      placeholder: e.g., 17.0.1856043
+    validations:
+      required: true
+
+  - type: input
+    id: vscode-version
+    attributes:
+      label: VS Code version
+      description: Find it under Help → About (Code → About Visual Studio Code on macOS).
+      placeholder: e.g., 1.103.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      description: Which operating system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output, error messages, or stack traces. This will be automatically formatted as code.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Any additional information that might help, such as screenshots or your ALCops settings.
+      placeholder: Additional context
+    validations:
+      required: false
