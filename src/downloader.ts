@@ -12,6 +12,7 @@ import { readManifest, writeManifest, createManifest, markAsPendingUpdate, clear
 import { checkDirectoryForLockedFiles } from './file-lock-handler.js';
 import { stageAndReplaceFiles, cleanupOldBackups } from './file-staging.js';
 import { getALExtension, promptUserForLockedFiles } from './al-extension-handler.js';
+import { resolveAnalyzersDir, getAnalyzersDirCandidates, CODE_ANALYSIS_DLL } from './analyzers-layout.js';
 import { launchNewVSCodeWindow } from './vscode-launcher.js';
 import { formatError, showTimedMessage } from './utils.js';
 
@@ -253,8 +254,11 @@ async function downloadALCopsAnalyzersInternal(version: string): Promise<void> {
             throw new Error('AL extension (ms-dynamics-smb.al) is not installed');
         }
 
-        const targetPath = path.join(alExtension.extensionPath, 'bin', 'Analyzers');
-        fs.mkdirSync(targetPath, { recursive: true });
+        const targetPath = resolveAnalyzersDir(alExtension.extensionPath);
+        if (!targetPath) {
+            const probed = getAnalyzersDirCandidates(alExtension.extensionPath).join(', ');
+            throw new Error(`Could not locate ${CODE_ANALYSIS_DLL} in the AL extension. Probed: ${probed}`);
+        }
 
         // Download and extract to a temp directory
         tempDir = path.join(os.tmpdir(), `alcops-temp-${Date.now()}`);
@@ -383,7 +387,7 @@ function extractZip(zipPath: string, extractPath: string): Promise<void> {
  * Extract the target framework from the Microsoft.Dynamics.Nav.CodeAnalysis.dll file
  */
 async function getTargetFramework(dllPath: string): Promise<string> {
-    const dllFile = path.join(dllPath, 'Microsoft.Dynamics.Nav.CodeAnalysis.dll');
+    const dllFile = path.join(dllPath, CODE_ANALYSIS_DLL);
 
     if (!fs.existsSync(dllFile)) {
         throw new Error(`DLL file not found: ${dllFile}`);
