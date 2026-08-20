@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { CodeAnalyzersManager } from './code-analyzers-manager.js';
+import { getAnalyzersPath } from './al-extension-handler.js';
 import { showTimedMessage } from './utils.js';
 
 export class StatusBarManager {
@@ -15,16 +15,11 @@ export class StatusBarManager {
             100 // High priority to show it early
         );
 
-        // Initialize Code Analyzers Manager with AL extension path
+        // Initialize Code Analyzers Manager with the AL extension's analyzers path
         try {
-            const alExtension = vscode.extensions.getExtension('ms-dynamics-smb.al');
-            if (alExtension) {
-                const analyzerPath = path.join(alExtension.extensionPath, 'bin', 'Analyzers');
-                this.codeAnalyzersManager = new CodeAnalyzersManager(analyzerPath);
-            } else {
-                // Initialize with default analyzers
-                this.codeAnalyzersManager = new CodeAnalyzersManager('');
-            }
+            const analyzerPath = getAnalyzersPath();
+            // Fall back to default analyzers when the path cannot be resolved
+            this.codeAnalyzersManager = new CodeAnalyzersManager(analyzerPath ?? '');
         } catch (error) {
             // Initialize with default analyzers even if error occurs
             this.codeAnalyzersManager = new CodeAnalyzersManager('');

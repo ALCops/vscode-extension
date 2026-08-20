@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { checkDirectoryForLockedFiles } from './file-lock-handler.js';
+import { resolveAnalyzersDir } from './analyzers-layout.js';
 
 const AL_EXTENSION_ID = 'ms-dynamics-smb.al';
 
@@ -12,12 +12,14 @@ export function getALExtension(): vscode.Extension<any> | null {
 }
 
 /**
- * Get the path to the Analyzers folder inside the AL extension.
- * Returns null if the AL extension is not installed.
+ * Get the path to the folder where analyzer DLLs live inside the AL extension.
+ * Handles both the flat `bin` layout (AL 18+) and the legacy `bin/Analyzers`
+ * layout (AL <=17). Returns null if the AL extension is not installed or the
+ * layout could not be determined.
  */
 export function getAnalyzersPath(): string | null {
     const ext = getALExtension();
-    return ext ? path.join(ext.extensionPath, 'bin', 'Analyzers') : null;
+    return ext ? resolveAnalyzersDir(ext.extensionPath) : null;
 }
 
 interface ALExtensionStatus {

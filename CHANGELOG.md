@@ -4,6 +4,11 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-20
+
+### Fixed
+- Fix "DLL file not found" installation failure on AL Language extension 18+ (BC 29), which moved all DLLs from `bin/Analyzers/` directly into `bin/`. The analyzers folder is now detected by probing for `Microsoft.Dynamics.Nav.CodeAnalysis.dll` (flat `bin/` layout first, legacy `bin/Analyzers/` as fallback) ([ALCops/Analyzers#442](https://github.com/ALCops/Analyzers/discussions/442))
+
 ## [1.3.4] - 2026-05-09
 
 ### Added
