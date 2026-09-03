@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { formatError } from './utils.js';
+import { log } from './logger.js';
 
 /**
  * Result of staging and replacing files
@@ -63,7 +64,7 @@ export function stageAndReplaceFiles(
                 replacedFiles.push(file);
             } catch (error) {
                 failedFiles.push(file);
-                console.error(`Failed to replace file ${file}:`, error);
+                log.error(`Failed to replace file ${file}:`, error);
                 // Don't continue - we want all-or-nothing
                 break;
             }
@@ -80,7 +81,7 @@ export function stageAndReplaceFiles(
         }
 
         // Step 5: Rollback on partial failure
-        console.warn(`Partial failure detected (${failedFiles.length}/${sourceFiles.length}). Rolling back...`);
+        log.warn(`Partial failure detected (${failedFiles.length}/${sourceFiles.length}). Rolling back...`);
         rollbackFiles(backupDir, targetDir);
 
         return {
@@ -118,14 +119,14 @@ function rollbackFiles(backupDir: string, targetDir: string): void {
             try {
                 fs.copyFileSync(backupFile, targetFile);
             } catch (error) {
-                console.error(`Failed to rollback file ${file}:`, error);
+                log.error(`Failed to rollback file ${file}:`, error);
             }
         }
 
         // Clean up backup directory
         fs.rmSync(backupDir, { recursive: true, force: true });
     } catch (error) {
-        console.error('Failed to complete rollback:', error);
+        log.error('Failed to complete rollback:', error);
     }
 }
 
@@ -145,11 +146,11 @@ export function cleanupOldBackups(targetDir: string, maxAge: number = 24 * 60 * 
 
                 if (age > maxAge) {
                     fs.rmSync(backupPath, { recursive: true, force: true });
-                    console.log(`Cleaned up old backup: ${file}`);
+                    log.info(`Cleaned up old backup: ${file}`);
                 }
             }
         }
     } catch (error) {
-        console.warn('Failed to cleanup old backups:', error);
+        log.warn('Failed to cleanup old backups:', error);
     }
 }

@@ -4,6 +4,13 @@ All notable changes to the ALCops extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-09-03
+
+### Added
+- "ALCops: Copy Version Information" command — copies extension, analyzers, AL Language, VS Code, and OS version details to the clipboard for issue reports
+- "ALCops" output channel with extension/analyzers version banner on activation and logging of install/update activity
+- Status bar tooltip now shows the extension, analyzers (with channel), and AL Language versions
+
 ## [1.4.0] - 2026-08-20
 
 ### Fixed

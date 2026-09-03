@@ -50,6 +50,10 @@
       {
         "command": "alcops.selectCodeAnalyzers",
         "title": "ALCops: Select Code Analyzers"
+      },
+      {
+        "command": "alcops.copyVersionInfo",
+        "title": "ALCops: Copy Version Information"
       }
     ],
     "jsonValidation": [

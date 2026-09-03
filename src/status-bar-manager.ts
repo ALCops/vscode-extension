@@ -2,11 +2,15 @@ import * as vscode from 'vscode';
 import { CodeAnalyzersManager } from './code-analyzers-manager.js';
 import { getAnalyzersPath } from './al-extension-handler.js';
 import { showTimedMessage } from './utils.js';
+import { log } from './logger.js';
+import { gatherVersionInfo, formatTooltipMarkdown, VersionInfo } from './version-info.js';
 
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
     private disposables: vscode.Disposable[] = [];
     private codeAnalyzersManager: CodeAnalyzersManager | null = null;
+    /** Cached so the tooltip does not re-read the manifest on every editor switch. */
+    private versionInfo: VersionInfo | null = null;
 
     constructor(context: vscode.ExtensionContext, onDidInstallAnalyzers: vscode.Event<string>) {
         // Create status bar item on the left side, before the language mode
@@ -39,7 +43,10 @@ export class StatusBarManager {
         // Listen for configuration changes
         const configChangeDisposable = vscode.workspace.onDidChangeConfiguration(
             (event) => {
-                if (event.affectsConfiguration('al.codeAnalyzers')) {
+                if (event.affectsConfiguration('alcops.versionChannel')) {
+                    this.versionInfo = null;
+                    this.updateStatusBar();
+                } else if (event.affectsConfiguration('al.codeAnalyzers')) {
                     this.updateStatusBar();
                 }
             }
@@ -48,6 +55,7 @@ export class StatusBarManager {
         // Refresh the analyzer list whenever a new installation completes
         const installDisposable = onDidInstallAnalyzers(() => {
             this.codeAnalyzersManager?.refresh();
+            this.versionInfo = null;
             this.updateStatusBar();
         });
 
@@ -66,8 +74,19 @@ export class StatusBarManager {
 
         this.statusBarItem.text = `ALCops: ${activeCodeAnalyzersCount}`;
         this.statusBarItem.command = 'alcops.selectCodeAnalyzers';
-        this.statusBarItem.tooltip = `Click to select Code Analyzers (${activeCodeAnalyzersCount} active)`;
+        this.statusBarItem.tooltip = new vscode.MarkdownString(
+            formatTooltipMarkdown(this.getVersionInfo(), activeCodeAnalyzersCount)
+        );
         this.statusBarItem.show();
+    }
+
+    /**
+     * Version information for the tooltip, read once and cached until an
+     * installation completes or the version channel changes.
+     */
+    private getVersionInfo(): VersionInfo {
+        this.versionInfo ??= gatherVersionInfo();
+        return this.versionInfo;
     }
 
     /**
@@ -199,7 +218,7 @@ export class StatusBarManager {
             showTimedMessage(message);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to update Code Analyzers: ${error}`);
-            console.error('Error updating Code Analyzers:', error);
+            log.error('Error updating Code Analyzers:', error);
         }
 
         this.updateStatusBar();

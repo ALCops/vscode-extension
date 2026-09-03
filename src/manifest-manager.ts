@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { formatError } from './utils.js';
+import { log } from './logger.js';
 
 /**
  * Represents the manifest metadata for ALCops analyzer installation
@@ -46,7 +47,7 @@ export function readManifest(targetPath: string): ALCopsManifest | null {
         const data = fs.readFileSync(manifestPath, 'utf-8');
         return JSON.parse(data) as ALCopsManifest;
     } catch (error) {
-        console.warn(`Failed to read manifest file: ${formatError(error)}`);
+        log.warn(`Failed to read manifest file: ${formatError(error)}`);
         return null;
     }
 }
@@ -98,9 +99,9 @@ export function markAsPendingUpdate(
         }
 
         writeManifest(targetPath, manifest);
-        console.log(`Marked ALCops v${pendingVersion} as pending for next startup`);
+        log.info(`Marked ALCops v${pendingVersion} as pending for next startup`);
     } catch (error) {
-        console.warn(`Failed to mark pending update: ${formatError(error)}`);
+        log.warn(`Failed to mark pending update: ${formatError(error)}`);
     }
 }
 
@@ -110,12 +111,12 @@ export function markAsPendingUpdate(
 export function getPendingUpdate(targetPath: string): string | null {
     try {
         const manifest = readManifest(targetPath);
-        console.log(`getPendingUpdate: manifest exists=${!!manifest}, pendingUpdate=${manifest?.pendingUpdate}, version=${manifest?.pendingVersion}`);
+        log.info(`getPendingUpdate: manifest exists=${!!manifest}, pendingUpdate=${manifest?.pendingUpdate}, version=${manifest?.pendingVersion}`);
         if (manifest?.pendingUpdate && manifest?.pendingVersion) {
             return manifest.pendingVersion;
         }
     } catch (error) {
-        console.warn(`Failed to get pending update: ${formatError(error)}`);
+        log.warn(`Failed to get pending update: ${formatError(error)}`);
     }
     return null;
 }
@@ -132,6 +133,6 @@ export function clearPendingUpdate(targetPath: string): void {
             writeManifest(targetPath, manifest);
         }
     } catch (error) {
-        console.warn(`Failed to clear pending update: ${formatError(error)}`);
+        log.warn(`Failed to clear pending update: ${formatError(error)}`);
     }
 }
