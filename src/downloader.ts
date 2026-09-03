@@ -15,6 +15,7 @@ import { getALExtension, promptUserForLockedFiles } from './al-extension-handler
 import { resolveAnalyzersDir, getAnalyzersDirCandidates, CODE_ANALYSIS_DLL } from './analyzers-layout.js';
 import { launchNewVSCodeWindow } from './vscode-launcher.js';
 import { formatError, showTimedMessage } from './utils.js';
+import { log } from './logger.js';
 
 const PACKAGE_NAME = 'ALCops.Analyzers';
 
@@ -113,7 +114,7 @@ export async function queryLatestVersion(channel: 'stable' | 'beta' | 'alpha'): 
 
         return filtered.sort((a, b) => compare(a.version, b.version)).at(-1)!.version;
     } catch (error) {
-        console.error('Error querying NuGet for latest version:', error);
+        log.error('Error querying NuGet for latest version:', error);
         return null;
     }
 }
@@ -306,7 +307,7 @@ async function downloadALCopsAnalyzersInternal(version: string): Promise<void> {
             try {
                 fs.rmSync(tempDir, { recursive: true, force: true });
             } catch (err) {
-                console.warn(`Failed to clean up temp directory: ${err}`);
+                log.warn(`Failed to clean up temp directory: ${err}`);
             }
         }
     }
@@ -316,7 +317,7 @@ async function handleLockedFiles(targetPath: string, version: string): Promise<'
     const lockCheck = checkDirectoryForLockedFiles(targetPath);
     if (!lockCheck.isLocked) { return 'proceed'; }
 
-    console.warn(`Locked files detected: ${lockCheck.lockedFiles.join(', ')}`);
+    log.warn(`Locked files detected: ${lockCheck.lockedFiles.join(', ')}`);
     const userChoice = await promptUserForLockedFiles(targetPath, version);
 
     if (userChoice === 'cancel') {

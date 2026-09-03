@@ -4,6 +4,7 @@ import { queryLatestVersion, downloadALCopsAnalyzers } from './downloader.js';
 import { getPendingUpdate } from './manifest-manager.js';
 import { getAnalyzersPath, getALExtension } from './al-extension-handler.js';
 import { formatError, showTimedMessage } from './utils.js';
+import { log } from './logger.js';
 
 export class AutoUpdater {
     private readonly _onDidInstallAnalyzers = new vscode.EventEmitter<string>();
@@ -27,7 +28,7 @@ export class AutoUpdater {
 
             await this.performUpdateCheck();
         } catch (error) {
-            console.error('Error checking for ALCops updates:', error);
+            log.error('Error checking for ALCops updates:', error);
         }
     }
 
@@ -123,18 +124,18 @@ export class AutoUpdater {
     private async installVersion(version: string | null, reason: string): Promise<boolean> {
         const targetVersion = version ?? await queryLatestVersion(this.getVersionChannel());
         if (!targetVersion) {
-            console.error(`Could not determine version to install (${reason})`);
+            log.error(`Could not determine version to install (${reason})`);
             return false;
         }
 
-        console.log(`Installing ALCops v${targetVersion} (${reason})...`);
+        log.info(`Installing ALCops v${targetVersion} (${reason})...`);
         try {
             await downloadALCopsAnalyzers(targetVersion);
             this._onDidInstallAnalyzers.fire(targetVersion);
             showTimedMessage(`ALCops v${targetVersion} installed successfully.`);
             return true;
         } catch (error) {
-            console.error(`Failed to install ALCops v${targetVersion}:`, error);
+            log.error(`Failed to install ALCops v${targetVersion}:`, error);
             vscode.window.showErrorMessage(`Failed to install ALCops: ${formatError(error)}`);
             return false;
         }
@@ -146,7 +147,7 @@ export class AutoUpdater {
     private async performUpdateCheck(): Promise<void> {
         const latestVersion = await queryLatestVersion(this.getVersionChannel());
         if (!latestVersion) {
-            console.log('Could not determine latest ALCops version');
+            log.info('Could not determine latest ALCops version');
             return;
         }
 
@@ -203,7 +204,7 @@ export class AutoUpdater {
             return false;
         }
 
-        console.log(`Found pending ALCops installation for v${pendingVersion}. Attempting installation...`);
+        log.info(`Found pending ALCops installation for v${pendingVersion}. Attempting installation...`);
         return this.installVersion(pendingVersion, 'pending deferred installation');
     }
 
@@ -213,7 +214,7 @@ export class AutoUpdater {
     async performStartupChecks(): Promise<void> {
         try {
             if (!getALExtension()) {
-                console.log('AL extension is not installed. Skipping ALCops startup checks.');
+                log.info('AL extension is not installed. Skipping ALCops startup checks.');
                 return;
             }
 
@@ -227,7 +228,7 @@ export class AutoUpdater {
 
             await this.checkAndNotifyUpdates();
         } catch (error) {
-            console.error('Error during startup checks:', error);
+            log.error('Error during startup checks:', error);
         }
     }
 

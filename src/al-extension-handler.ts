@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { checkDirectoryForLockedFiles } from './file-lock-handler.js';
 import { resolveAnalyzersDir } from './analyzers-layout.js';
+import { log } from './logger.js';
 
 const AL_EXTENSION_ID = 'ms-dynamics-smb.al';
 
@@ -35,7 +36,7 @@ function checkALExtensionStatus(analyzerPath: string): ALExtensionStatus {
         const alExtension = getALExtension();
         isRunning = alExtension?.isActive ?? false;
     } catch (error) {
-        console.warn('Error checking AL extension status:', error);
+        log.warn('Error checking AL extension status:', error);
     }
     const lockedFiles = checkDirectoryForLockedFiles(analyzerPath).lockedFiles;
     const hasLocks = lockedFiles.length > 0;

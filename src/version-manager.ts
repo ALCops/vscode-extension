@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { readManifest } from './manifest-manager.js';
 import { getALExtension, getAnalyzersPath } from './al-extension-handler.js';
+import { log } from './logger.js';
 
 const LAST_UPDATE_CHECK_KEY = 'alcops.lastUpdateCheck';
 
@@ -74,7 +75,7 @@ export class VersionManager {
 
             return extractor(manifest) || null;
         } catch (error) {
-            console.warn(`Failed to read manifest value: ${error}`);
+            log.warn(`Failed to read manifest value: ${error}`);
             return null;
         }
     }
