@@ -128,12 +128,12 @@
   "devDependencies": {
     "@types/node": "26.x",
     "@types/semver": "^7.8.0",
-    "@types/vscode": "^1.134.0",
+    "@types/vscode": "^1.136.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.2",
-    "eslint": "^10.9.1",
+    "eslint": "^10.10.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.69.0",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.0"
   },
   "dependencies": {
