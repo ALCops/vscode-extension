@@ -55,6 +55,7 @@ On Windows, the AL Language extension locks analyzer DLLs while running. The ext
 - **TypeScript strict mode** is enabled. Target is ES2022, module resolution is Node16.
 - **ESLint rules**: naming conventions for imports, curly braces required, strict equality (`===`), semicolons required.
 - **Versioning**: GitVersion with GitHubFlow calculates SemVer from git history. Never manually edit `version` in `package.json`. Branch from `main`, release via `release/*` branches and `v*` tags.
+- **VS Code engine floor**: `engines.vscode` follows the minimum required by the AL Language extension (`ms-dynamics-smb.al`), currently `^1.100.0`. `@types/vscode` is pinned exactly to that version and excluded from Dependabot. Never bump `@types/vscode` on its own; raise both together, and only when the AL extension raises its floor or ALCops needs a newer API. `vsce package` fails if `@types/vscode` exceeds `engines.vscode`.
 - **CI checks before PR**: run `npm run lint && npm run typecheck && npm run unit-test`.
 - **Changelog**: every PR must update `CHANGELOG.md` under `## [Unreleased]` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format. See `.github/instructions/changelog.instructions.md` for details.
 

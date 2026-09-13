@@ -4,7 +4,7 @@ A Visual Studio Code extension that integrates ALCops analyzers for the AL progr
 
 ## Requirements
 
-- **Visual Studio Code**: Version 1.60.0 or later
+- **Visual Studio Code**: Version 1.100.0 or later
 - **AL Language Extension**: The official Microsoft AL Language extension for Business Central (version 12.0.875970 or later)
 
 ## Getting Started

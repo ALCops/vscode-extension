@@ -6,6 +6,10 @@ updates:
       interval: "weekly"
     target-branch: "main"
     open-pull-requests-limit: 5
+    ignore:
+      # @types/vscode must match engines.vscode, which follows the AL Language
+      # extension's minimum. Bump both deliberately, never via Dependabot.
+      - dependency-name: "@types/vscode"
     groups:
       minor-and-patch:
         patterns:
