@@ -129,7 +129,7 @@
     "@types/node": "26.x",
     "@types/semver": "^7.8.0",
     "@types/vscode": "1.100.0",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "typescript": "^6.0.3",
