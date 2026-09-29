@@ -10,7 +10,8 @@ yarn.lock
 
 # IDE
 .vscode-test/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 *.swp
 *.swo
 *~

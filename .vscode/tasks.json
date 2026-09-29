@@ -1,0 +1,26 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			// Runs esbuild directly (same as `npm run bundle`) without a shell,
+			// so shell profiles cannot change the working directory.
+			"label": "bundle",
+			"type": "process",
+			"command": "node",
+			"args": ["esbuild.mjs"],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "silent"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
