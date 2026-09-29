@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Changed
 - Lower the minimum VS Code version to 1.100.0 (matching the AL Language extension) and exclude `@types/vscode` from Dependabot so the floor is no longer raised by routine dependency bumps ([#79](https://github.com/ALCops/vscode-extension/pull/79))
+- Status bar item now shows a search icon instead of the "ALCops:" label, and has an accessible name for screen readers ([#84](https://github.com/ALCops/vscode-extension/pull/84))
 
 ## [1.4.1] - 2026-09-03
 

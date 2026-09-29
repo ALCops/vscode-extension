@@ -18,6 +18,7 @@ export class StatusBarManager {
             vscode.StatusBarAlignment.Left,
             100 // High priority to show it early
         );
+        this.statusBarItem.name = 'ALCops';
 
         // Initialize Code Analyzers Manager with the AL extension's analyzers path
         try {
@@ -72,7 +73,10 @@ export class StatusBarManager {
     private updateStatusBar(): void {
         const activeCodeAnalyzersCount = this.getActiveCodeAnalyzersCount();
 
-        this.statusBarItem.text = `ALCops: ${activeCodeAnalyzersCount}`;
+        this.statusBarItem.text = `$(search-fuzzy) ${activeCodeAnalyzersCount}`;
+        this.statusBarItem.accessibilityInformation = {
+            label: `ALCops: ${activeCodeAnalyzersCount} code analyzer${activeCodeAnalyzersCount === 1 ? '' : 's'} enabled`
+        };
         this.statusBarItem.command = 'alcops.selectCodeAnalyzers';
         this.statusBarItem.tooltip = new vscode.MarkdownString(
             formatTooltipMarkdown(this.getVersionInfo(), activeCodeAnalyzersCount)
